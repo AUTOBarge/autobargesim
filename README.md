@@ -8,3 +8,14 @@
 - Step 05: Create a document using a Github .md file that contains information about the feature and its demo files.
 - Step 06: Assign the issue to a third person to run the demo files and evaluate your work. This person is responsible to make sure that the feature is working as intended and that the provided documentation is sufficient to use it without consulting the author. Preferably this should be done by someone with a different field of expertise in order to ensure the clarity of the documentation.
 - Step 07: Create a pull request and assign the issue to **Dhanika** to merge the branch to the main repository.
+
+## Folder structure for a class:
+Please follow the following folder structure as a guideline when creating a new class:  
+  
+[class name] folder
+  - 'docs' folder
+  - 'demo' folder
+    - [class name]_demo1.m
+    - [class name]_demo2.m
+  - [class name].m file
+  - README.md file
