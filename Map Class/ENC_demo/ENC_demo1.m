@@ -5,11 +5,11 @@ folder = 'pdw';  % Set the folder path
 files = dir(fullfile(folder, '*.shp'));  % Get information of all .shp files in the folder
 desirename=["depare","bridge","wtwaxs","lndare","notmrk"]; %give the desirename
 
-pgon_memory = ENC_function.shape_multi(desirename,files,folder,desirename(1));%Refer to Categories in the workspace to determine the order of desirename
-pgon_memory_2 = ENC_function.shape_multi(desirename,files,folder,desirename(2));
-pgon_memory_3 = ENC_function.shape_multi(desirename,files,folder,desirename(3));
-pgon_memory_4 = ENC_function.shape_multi(desirename,files,folder,desirename(4));
-pgon_memory_5 = ENC_function.shape_multi(desirename,files,folder,desirename(5));
+pgon_memory = ENC.shape_multi(desirename,files,folder,desirename(1));%Refer to Categories in the workspace to determine the order of desirename
+pgon_memory_2 = ENC.shape_multi(desirename,files,folder,desirename(2));
+pgon_memory_3 = ENC.shape_multi(desirename,files,folder,desirename(3));
+pgon_memory_4 = ENC.shape_multi(desirename,files,folder,desirename(4));
+pgon_memory_5 = ENC.shape_multi(desirename,files,folder,desirename(5));
 
 %%%%polt
 os_x = 2.65*10^5;
