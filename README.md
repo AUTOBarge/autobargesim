@@ -18,3 +18,6 @@ Please follow the following folder structure as a guideline when creating a new 
     - [class name]_demo2.m
   - [class name].m file
   - README.md file
+
+## Class documentation template:
+When creating the documentation of a class use the following template.
