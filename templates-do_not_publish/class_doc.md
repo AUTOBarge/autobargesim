@@ -3,6 +3,9 @@
 ## About
 Describe the basic functionality of the class.
 
+## Dependencies
+Mention any third party libraries or Matlab toolboxes that do not come with the base package of Matlab
+
 ## Features
 Describe the methods (functions) available for the user. For example:  
 This is an example for the above using the [Sine function in Matlab](https://www.mathworks.com/help/matlab/ref/sin.html)
