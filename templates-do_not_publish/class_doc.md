@@ -4,7 +4,7 @@
 Describe the basic functionality of the class.
 
 ## Dependencies
-Mention any third party libraries or Matlab toolboxes that do not come with the base package of Matlab
+Mention any third party libraries or Matlab toolboxes that do not come with the base package of Matlab but required for the functionality of the class.
 
 ## Features
 Describe the methods (functions) available for the user. For example:  
