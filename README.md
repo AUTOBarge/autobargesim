@@ -20,4 +20,4 @@ Please follow the following folder structure as a guideline when creating a new 
   - README.md file
 
 ## Class documentation template:
-When creating the documentation of a class use the following template.
+When creating the documentation of a class use the [following template](templates-do_not_publish/class_doc.md).
