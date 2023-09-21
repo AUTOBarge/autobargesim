@@ -13,7 +13,6 @@
 Please follow the following folder structure as a guideline when creating a new class:  
   
 [class name] folder
-  - 'docs' folder
   - 'demo' folder
     - [class name]_demo1.m
     - [class name]_demo2.m
