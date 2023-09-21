@@ -4,6 +4,7 @@ Matlab
 ## Pre-requisite
 [Mapping Toolbox](https://de.mathworks.com/products/mapping.html) 
 # Explain and Run
+- Add ENC_class/ENC.m as your 'run' function.
 - Replace 'pwd' with the path of the folder where your .shp files are stored.
 ``` Matlab
 folder = 'pwd';  % Set the folder path!!!!!!!!!!!!!!!
