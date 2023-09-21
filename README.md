@@ -19,5 +19,8 @@ Please follow the following folder structure as a guideline when creating a new 
   - [class name].m file
   - README.md file
 
-## Class documentation template:
-When creating the documentation of a class use the [following template](templates-do_not_publish/class_doc.md).
+## Documentation templates:
+- Class documentation
+  When creating the documentation of a class use [this](templates-do_not_publish/class_doc.md) template.
+- Demo documentation
+  When creating the documentation of a demo use [this](templates-do_not_publish/demo_doc.md) template.
