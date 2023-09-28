@@ -9,6 +9,6 @@ Since Matlab can't directly read and modify .000 files, this method is used to d
 They are two different functional codes, please review their readme and use them separately.
 # Contact
 Email: zhongbi.luo@kuleuven.be,
-dhanika.chamath.gunarathna.mahipala@km.kongsberg.com,
+dhanika.mahipala@km.kongsberg.com,
 hoang.a.tran@ntnu.no
 
