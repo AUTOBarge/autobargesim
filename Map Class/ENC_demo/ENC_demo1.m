@@ -1,6 +1,7 @@
 clear
 clc
 
+addpath('pdw');
 folder = 'pdw';  % Set the folder path
 files = dir(fullfile(folder, '*.shp'));  % Get information of all .shp files in the folder
 desirename=["depare","bridge","wtwaxs","lndare","notmrk"]; %give the desirename

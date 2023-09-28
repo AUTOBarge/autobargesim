@@ -1,4 +1,4 @@
-classdef ENC_function
+classdef ENC
     
 
     methods (Static)
@@ -31,7 +31,7 @@ classdef ENC_function
             for  uu = 1:length(categories)
                     if strcmp( categories(uu).name,char(desirename_char) )
                         A = categories(uu).shpFiles;
-                        pgon_memory = ENC_function.shapecompute_multi(A);
+                        pgon_memory = ENC.shapecompute_multi(A);
                     else
                         continue
                     end
