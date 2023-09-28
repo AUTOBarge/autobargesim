@@ -1,8 +1,4 @@
-<<<<<<< HEAD:maps/maps.m
 classdef maps
-=======
-classdef ENC
->>>>>>> ffbecf63d90dfcd88c778b38b14097d2dd1060eb:Map Class/ENC_class/ENC.m
     
 
     methods (Static)
@@ -35,11 +31,7 @@ classdef ENC
             for  uu = 1:length(categories)
                     if strcmp( categories(uu).name,char(desirename_char) )
                         A = categories(uu).shpFiles;
-<<<<<<< HEAD:maps/maps.m
                         pgon_memory = maps.shapecompute_multi(A);
-=======
-                        pgon_memory = ENC.shapecompute_multi(A);
->>>>>>> ffbecf63d90dfcd88c778b38b14097d2dd1060eb:Map Class/ENC_class/ENC.m
                     else
                         continue
                     end
