@@ -4,7 +4,7 @@
 to be added
 
 ## Dependencies
-The following tooldboxes are required to run this demo:
+The following tooldboxes are required:
 - [Mapping Toolbox](https://de.mathworks.com/products/mapping.html) 
 
 ## Setup
