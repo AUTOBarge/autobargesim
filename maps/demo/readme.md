@@ -1,9 +1,14 @@
-# Shpread
-# Getting Started
-Matlab
-## Pre-requisite
-[Mapping Toolbox](https://de.mathworks.com/products/mapping.html) 
-# Explain and Run
+# Maps Demo 1
+
+## Description
+to be added
+
+## Dependencies
+The following tooldboxes are required to run this demo:
+- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html) 
+
+## Setup
+Follow the steps below to run this demo:
 - Add ENC_class/ENC.m as your 'run' function.
 - Replace 'pwd' with the path of the folder where your .shp files are stored.
 ``` Matlab
@@ -22,3 +27,5 @@ pgon_memory_5 = ENC.shape_multi(desirename,files,folder,desirename(5));
 ```Matlab
 %%%%polt
 ```
+## Results
+to be added
