@@ -36,7 +36,7 @@ A version control system helps manage your files and track the history of change
 The most straight forward way of interacting with Git is to use your command-line. You can have an overview of how you can use the command-line to interact with Git [here](https://aguaclara.github.io/aguaclara_tutorial/git-and-github/git-in-the-command-line.html). However, today there are ease-of-use interfaces that make it easy to interact with Git without using the command-line, known as [Git Clients](#what-is-a-git-client).
 
 ## What is a Git Client?
-A Git Client is a grpahical user interface (GUI) which can be used to interact with a Git repository instead of using the command-line. Two popular clients are:  
+A Git Client is a graphical user interface (GUI) which can be used to interact with a Git repository instead of using the command-line. Two popular clients are:  
 - [Sublime Merge](https://desktop.github.com/)
 - [Github Desktop](https://www.sublimemerge.com/)
 Both are free to use and I personally use Sublime Merge since I am a Linux user. In my opinion, Sublime Merge is more flexible as well, compared to Github Desktop.
