@@ -31,3 +31,4 @@ Datatype dictionary: Require MATLAB R2022b or higher.
 ## Contact
 
 Yan-Yun Zhang: <yanyun.zhang@kuleuven.be>
+Chengqian Zhang: <chengqian.zhang@chalmers.se>
