@@ -39,7 +39,7 @@ classdef actuatorClass
         ctrl_actual (1, 2) int8 = zeros(1, 2)
         F_R (3, 1) double = zeros(3, 1)
         F_P (3, 1) double = zeros(3, 1)
-        tau_act (1, 2) double = zeros(3, 1)
+        tau_act (3, 1) double = zeros(3, 1)
     end
 
     % Constructor
