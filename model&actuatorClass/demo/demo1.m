@@ -9,36 +9,37 @@ ship_dim = dictionary("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05
 env_set = dictionary("rho_water", 1000, "H_d", 2);
 prop_params = dictionary("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
 rud_params = dictionary("C_R", 1.6, "B_R", 1.4, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
+initial_state = [4 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
+initial_ctrl = [340 0]; % Initial control
 
 %% Initialization
 Vessel = modelClass(ship_dim, env_set);
 SRSP = actuatorClass(ship_dim, env_set, prop_params, rud_params);
-[dyn_model_params, ref_model_params] = Vessel.ship_params_calculator();
-
-sensor_state = [4 0 0 0 0 0]'; % [u v r x y psi] in column
-ctrl_last = [340 0]; % Initial control
+Vessel = Vessel.ship_params_calculator();
+Vessel.sensor_state = initial_state;
+ctrl_last = initial_ctrl;
 
 %% --- MAIN LOOP ---
 N = round(t_f / h); % number of samples
-xout = zeros(N + 1, length(sensor_state) + 6); % Storing data
+xout = zeros(N + 1, 12); % Storing data
 
 for i = 1:N + 1
-    vel = sensor_state(1:3);
+    vel = Vessel.sensor_state(1:3);
     time = (i - 1) * h; % simulation time in seconds
-    ctrl_actual = SRSP.act_response(ctrl_last, ctrl_command, h);
-    [J_P, K_T, F_P] = SRSP.get_prop_force(vel, ctrl_actual);
-    F_R = SRSP.get_rud_force(vel, ctrl_actual, J_P, K_T);
-    tau_act = SRSP.get_act_force(F_P, F_R);
-    sensor_state_dot = Vessel.sensor_dynamic_model(dyn_model_params, sensor_state, tau_act);
+    SRSP = SRSP.act_response(ctrl_last, ctrl_command, h);
+    [J_P, K_T, SRSP] = SRSP.get_prop_force(vel);
+    SRSP = SRSP.get_rud_force(vel, J_P, K_T);
+    SRSP = SRSP.get_act_force();
+    Vessel = Vessel.sensor_dynamic_model(SRSP.tau_act);
 
     % Euler integration
-    sensor_state = sensor_state + sensor_state_dot * h;
+    Vessel.sensor_state = Vessel.sensor_state + Vessel.sensor_state_dot * h;
 
     % Update control action
-    ctrl_last = ctrl_actual;
+    ctrl_last = SRSP.ctrl_actual;
 
     % store data for presentation
-    xout(i, :) = [time, sensor_state', ctrl_actual, sensor_state_dot(1:3)'];
+    xout(i, :) = [time, Vessel.sensor_state', SRSP.ctrl_actual, Vessel.sensor_state_dot(1:3)'];
 end
 
 % time-series
@@ -63,7 +64,6 @@ grid, axis('equal'), xlabel('East (y/L)'), ylabel('North (x/L)'), title('Ship po
 figure(2)
 subplot(331), plot(t, u, 'r'), xlabel('time (s)'), title('u (m/s)'), grid
 subplot(332), plot(t, v, 'r'), xlabel('time (s)'), title('v (m/s)'), grid
-subplot(333), plot(t, r, 'r'), xlabel('time (s)'), title('yaw rate r (deg/s)'), grid
 subplot(334), plot(t, psi, 'r'), xlabel('time (s)'), title('yaw angle \psi (deg)'), grid
 subplot(335), plot(t, delta, 'r'), xlabel('time (s)'), title('rudder angle \delta (deg)'), grid
 subplot(336), plot(t, n, 'r'), xlabel('time (s)'), title('rpm'), grid

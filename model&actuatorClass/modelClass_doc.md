@@ -10,15 +10,14 @@ Datatype dictionary: Require MATLAB R2022b or higher.
 
 ## Properties
 
-- ship_dim: Ship dimensions.
-- env_set: External environment.
-- dyn_model_params: Parameters in the sensor dynamic model.
-- ref_model_params: Parameters in the control reference model.
-- sensor_state: States used in sensor dynamic model.
-- sensor_state_dot: Output (state_dot) of sensor dynamic model.
-- ref_state: States used in control reference model.
-- ref_state_dot: Output (state_dot) of control reference model.
-- tau_act: Actuator forces (from actuatorClass).
+- ship_dim: Ship dimensions. datatype: Dictionary.
+- env_set: External environment. datatype: Dictionary.
+- dyn_model_params: Parameters in the sensor dynamic model. datatype: Dictionary.
+- ref_model_params: Parameters in the control reference model. datatype: Dictionary.
+- sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
+- sensor_state_dot: Output (state_dot) of sensor dynamic model. datatype: array (6, 1).
+- ref_state: States used in control reference model. datatype: array (6, 1).
+- ref_state_dot: Output (state_dot) of control reference model. datatype: array (6, 1).
 
 ## Methods
 

@@ -5,15 +5,14 @@ classdef modelClass
     %   This class provides dynamic models as virtual sensor / control reference model based on provided ship dimensions, environment setting and actuating forces from actuatorClass.
     %
     % Properties:
-    %   - ship_dim: Ship dimensions.
-    %   - env_set: External environment.
-    %   - dyn_model_params: Parameters in the sensor dynamic model.
-    %   - ref_model_params: Parameters in the control reference model.
-    %   - sensor_state: States used in sensor dynamic model.
-    %   - sensor_state_dot: Output (state_dot) of sensor dynamic model.
-    %   - ref_state: States used in control reference model.
-    %   - ref_state_dot: Output (state_dot) of control reference model.
-    %   - tau_act: Actuator forces (from actuatorClass).
+    %   - ship_dim: Ship dimensions. datatype: Dictionary.
+    %   - env_set: External environment. datatype: Dictionary.
+    %   - dyn_model_params: Parameters in the sensor dynamic model. datatype: Dictionary.
+    %   - ref_model_params: Parameters in the control reference model. datatype: Dictionary.
+    %   - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
+    %   - sensor_state_dot: Output (state_dot) of sensor dynamic model. datatype: array (6, 1).
+    %   - ref_state: States used in control reference model. datatype: array (6, 1).
+    %   - ref_state_dot: Output (state_dot) of control reference model. datatype: array (6, 1).
     %
     % Methods:
     %   - pramsCalculator:
@@ -36,11 +35,10 @@ classdef modelClass
         env_set
         dyn_model_params
         ref_model_params
-        sensor_state
-        sensor_state_dot
-        ref_state
-        ref_state_dot
-        tau_act
+        sensor_state (6, 1) double = zeros(6, 1)
+        sensor_state_dot (6, 1) double = zeros(6, 1)
+        ref_state (6, 1) double = zeros(6, 1)
+        ref_state_dot (6, 1) double = zeros(6, 1)
     end
 
     % Constructor
@@ -60,12 +58,12 @@ classdef modelClass
     % pramsCalculator
     methods
 
-        function [dyn_model_params, ref_model_params] = ship_params_calculator(obj)
+        function obj = ship_params_calculator(obj)
             %This function calculates model parameters using imperical formulas based on ship dimensions.
             %
-            %Output Arguments:
-            %- dyn_model_params (dic): Parameters in the sensor dynamic model.
-            %- ref_model_params (dic): Parameters in the control reference model.
+            %Updated Arguments:
+            %- obj.dyn_model_params (dic): Parameters in the sensor dynamic model.
+            %- obj.ref_model_params (dic): Parameters in the control reference model.
 
             %% Load environment setting
             rho_water = obj.env_set("rho_water"); % Water density in kg/m^3
@@ -129,58 +127,58 @@ classdef modelClass
             %% Construct outputs
             dyn_model_names = ["L" "d" "rho_water" "m" "x_G" "I_zG" "m_x" "m_y" "J_z" "R_dash" "X_vv_dash" "X_rr_dash" "X_vr_dash" "Y_v_dash" "Y_vvv_dash" "Y_r_dash" "Y_rrr_dash" "Y_vvr_dash" "Y_vrr_dash" "N_v_dash" "N_vvv_dash" "N_r_dash" "N_rrr_dash" "N_vvr_dash" "N_vrr_dash"];
             dyn_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash X_vv_dash X_rr_dash X_vr_dash Y_v_dash Y_vvv_dash Y_r_dash Y_rrr_dash Y_vvr_dash Y_vrr_dash N_v_dash N_vvv_dash N_r_dash N_rrr_dash N_vvr_dash N_vrr_dash];
-            dyn_model_params = dictionary(dyn_model_names, dyn_model_wheels);
+            obj.dyn_model_params = dictionary(dyn_model_names, dyn_model_wheels);
             ref_model_names = ["L" "d" "rho_water" "m" "x_G" "I_zG" "m_x" "m_y" "J_z" "R_dash" "Y_v_dash" "Y_r_dash" "N_v_dash" "N_r_dash"];
             ref_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash Y_v_dash Y_r_dash N_v_dash N_r_dash];
-            ref_model_params = dictionary(ref_model_names, ref_model_wheels);
+            obj.ref_model_params = dictionary(ref_model_names, ref_model_wheels);
 
         end
 
     end
 
     % Models
-    methods (Static)
+    methods
 
-        function sensor_state_dot = sensor_dynamic_model(dyn_model_params, sensor_state, tau_act)
+        function obj = sensor_dynamic_model(obj, tau_act)
             %This function provides a dynamic model for 3DOF maneuvring motion. It is highly accurate and serves as a virtual sensor.
             %
             %Output Arguments:
             %- sensor_state_dot (list)
 
             %% Load states
-            u = sensor_state(1);
-            v = sensor_state(2);
-            r = sensor_state(3); %rad/s
-            x = sensor_state(4);
-            y = sensor_state(5);
-            psi = sensor_state(6);
+            u = obj.sensor_state(1);
+            v = obj.sensor_state(2);
+            r = obj.sensor_state(3); %rad/s
+            x = obj.sensor_state(4);
+            y = obj.sensor_state(5);
+            psi = obj.sensor_state(6);
 
             %% Load model parameters
-            L = dyn_model_params("L");
-            d = dyn_model_params("d");
-            rho_water = dyn_model_params("rho_water");
-            m = dyn_model_params("m");
-            x_G = dyn_model_params("x_G");
-            I_zG = dyn_model_params("I_zG");
-            m_x = dyn_model_params("m_x");
-            m_y = dyn_model_params("m_y");
-            J_z = dyn_model_params("J_z");
-            R_dash = dyn_model_params("R_dash");
-            X_vv_dash = dyn_model_params("X_vv_dash");
-            X_rr_dash = dyn_model_params("X_rr_dash");
-            X_vr_dash = dyn_model_params("X_vr_dash");
-            Y_v_dash = dyn_model_params("Y_v_dash");
-            Y_vvv_dash = dyn_model_params("Y_vvv_dash");
-            Y_r_dash = dyn_model_params("Y_r_dash");
-            Y_rrr_dash = dyn_model_params("Y_rrr_dash");
-            Y_vvr_dash = dyn_model_params("Y_vvr_dash");
-            Y_vrr_dash = dyn_model_params("Y_vrr_dash");
-            N_v_dash = dyn_model_params("N_v_dash");
-            N_vvv_dash = dyn_model_params("N_vvv_dash");
-            N_r_dash = dyn_model_params("N_r_dash");
-            N_rrr_dash = dyn_model_params("N_rrr_dash");
-            N_vvr_dash = dyn_model_params("N_vvr_dash");
-            N_vrr_dash = dyn_model_params("N_vrr_dash");
+            L = obj.dyn_model_params("L");
+            d = obj.dyn_model_params("d");
+            rho_water = obj.dyn_model_params("rho_water");
+            m = obj.dyn_model_params("m");
+            x_G = obj.dyn_model_params("x_G");
+            I_zG = obj.dyn_model_params("I_zG");
+            m_x = obj.dyn_model_params("m_x");
+            m_y = obj.dyn_model_params("m_y");
+            J_z = obj.dyn_model_params("J_z");
+            R_dash = obj.dyn_model_params("R_dash");
+            X_vv_dash = obj.dyn_model_params("X_vv_dash");
+            X_rr_dash = obj.dyn_model_params("X_rr_dash");
+            X_vr_dash = obj.dyn_model_params("X_vr_dash");
+            Y_v_dash = obj.dyn_model_params("Y_v_dash");
+            Y_vvv_dash = obj.dyn_model_params("Y_vvv_dash");
+            Y_r_dash = obj.dyn_model_params("Y_r_dash");
+            Y_rrr_dash = obj.dyn_model_params("Y_rrr_dash");
+            Y_vvr_dash = obj.dyn_model_params("Y_vvr_dash");
+            Y_vrr_dash = obj.dyn_model_params("Y_vrr_dash");
+            N_v_dash = obj.dyn_model_params("N_v_dash");
+            N_vvv_dash = obj.dyn_model_params("N_vvv_dash");
+            N_r_dash = obj.dyn_model_params("N_r_dash");
+            N_rrr_dash = obj.dyn_model_params("N_rrr_dash");
+            N_vvr_dash = obj.dyn_model_params("N_vvr_dash");
+            N_vrr_dash = obj.dyn_model_params("N_vrr_dash");
 
             %% Non-dimensionalize
             U = sqrt(u ^ 2 + v ^ 2);
@@ -208,43 +206,43 @@ classdef modelClass
 
             %%
             vel_dot = M \ (tau_act + D + C);
-            sensor_state_dot = [vel_dot
-                                cos(psi) * u - sin(psi) * v
-                                sin(psi) * u + cos(psi) * v
-                                r
-                                ];
+            obj.sensor_state_dot = [vel_dot
+                                    cos(psi) * u - sin(psi) * v
+                                    sin(psi) * u + cos(psi) * v
+                                    r
+                                    ];
 
         end
 
-        function ref_state_dot = control_ref_model(ref_model_params, ref_state, tau_act)
+        function obj = control_ref_model(obj, tau_act)
             %This function provides reference model for controllers.
             %
             %Output Arguments:
             %- ref_state_dot (list)
 
             %% Load states
-            u = ref_state(1);
-            v = ref_state(2);
-            r = ref_state(3); %rad/s
-            x = ref_state(4);
-            y = ref_state(5);
-            psi = ref_state(6);
+            u = obj.ref_state(1);
+            v = obj.ref_state(2);
+            r = obj.ref_state(3); %rad/s
+            x = obj.ref_state(4);
+            y = obj.ref_state(5);
+            psi = obj.ref_state(6);
 
             %% Load model parameters
-            L = ref_model_params("L");
-            d = ref_model_params("d");
-            rho_water = ref_model_params("rho_water");
-            m = ref_model_params("m");
-            x_G = ref_model_params("x_G");
-            I_zG = ref_model_params("I_zG");
-            m_x = ref_model_params("m_x");
-            m_y = ref_model_params("m_y");
-            J_z = ref_model_params("J_z");
-            R_dash = ref_model_params("R_dash");
-            Y_v_dash = ref_model_params("Y_v_dash");
-            Y_r_dash = ref_model_params("Y_r_dash");
-            N_v_dash = ref_model_params("N_v_dash");
-            N_r_dash = ref_model_params("N_r_dash");
+            L = obj.ref_model_params("L");
+            d = obj.ref_model_params("d");
+            rho_water = obj.ref_model_params("rho_water");
+            m = obj.ref_model_params("m");
+            x_G = obj.ref_model_params("x_G");
+            I_zG = obj.ref_model_params("I_zG");
+            m_x = obj.ref_model_params("m_x");
+            m_y = obj.ref_model_params("m_y");
+            J_z = obj.ref_model_params("J_z");
+            R_dash = obj.ref_model_params("R_dash");
+            Y_v_dash = obj.ref_model_params("Y_v_dash");
+            Y_r_dash = obj.ref_model_params("Y_r_dash");
+            N_v_dash = obj.ref_model_params("N_v_dash");
+            N_r_dash = obj.ref_model_params("N_r_dash");
 
             %% Non-dimensionalize
             U = sqrt(u ^ 2 + v ^ 2);
@@ -272,11 +270,11 @@ classdef modelClass
 
             %%
             vel_dot = M \ (tau_act + D + C);
-            ref_state_dot = [vel_dot
-                             cos(psi) * u - sin(psi) * v
-                             sin(psi) * u + cos(psi) * v
-                             r
-                             ];
+            obj.ref_state_dot = [vel_dot
+                                 cos(psi) * u - sin(psi) * v
+                                 sin(psi) * u + cos(psi) * v
+                                 r
+                                 ];
 
         end
 

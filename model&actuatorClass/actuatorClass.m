@@ -5,18 +5,14 @@ classdef actuatorClass
     %   This class provides a force model for actuators.
     %
     % Properties:
-    %   - ship_dim: Ship dimensions.
-    %   - env_set: External environment.
-    %   - prop_params: Propeller force model parameters.
-    %   - rud_params: Rudder force model parameters.
-    %   - h: Sample time in s.
-    %   - ctrl_last: Last step Control actions (n_k, delta_k).
-    %   - ctrl_command: Control commands (n_c, delta_c).
-    %   - ctrl_actual: Actual control actions (n, delta).
-    %   - vel: Ship velocity (u, v, r).
-    %   - F_P: Propeller force.
-    %   - F_R: Rudder force.
-    %   - tau_act: Total actuation force.
+    %   - ship_dim: Ship dimensions. datatype: Dictionary.
+    %   - env_set: External environment. datatype: Dictionary.
+    %   - prop_params: Propeller force model parameters. datatype: Dictionary.
+    %   - rud_params: Rudder force model parameters. datatype: Dictionary.
+    %   - ctrl_actual: Actual control actions (n, delta). datatype: array (1, 2).
+    %   - F_P: Propeller force. datatype: array (3, 1).
+    %   - F_R: Rudder force. datatype: array (3, 1).
+    %   - tau_act: Total actuation force. datatype: array (3, 1).
     %
     % Methods:
     %   - lowLevelControl:
@@ -40,14 +36,10 @@ classdef actuatorClass
         env_set
         prop_params
         rud_params
-        h
-        ctrl_last
-        ctrl_command
-        ctrl_actual
-        vel
-        F_R
-        F_P
-        tau_act
+        ctrl_actual (1, 2) int8 = zeros(1, 2)
+        F_R (3, 1) double = zeros(3, 1)
+        F_P (3, 1) double = zeros(3, 1)
+        tau_act (1, 2) double = zeros(3, 1)
     end
 
     % Constructor
@@ -69,7 +61,7 @@ classdef actuatorClass
     % lowLevelControl
     methods
 
-        function ctrl_actual = act_response(obj, ctrl_last, ctrl_command, h)
+        function obj = act_response(obj, ctrl_last, ctrl_command, h)
             %This function describes the response of the actuators to the control command.
             %Output Arguments:
             %- ctrl_actual: Actual control actions.
@@ -107,7 +99,7 @@ classdef actuatorClass
                 delta = delta_c;
             end
 
-            ctrl_actual = [n delta];
+            obj.ctrl_actual = [n delta];
 
         end
 
@@ -116,7 +108,7 @@ classdef actuatorClass
     % forceModels
     methods
 
-        function [J_P, K_T, F_P] = get_prop_force(obj, vel, ctrl_actual)
+        function [J_P, K_T, obj] = get_prop_force(obj, vel)
             %This function provides a propeller force model.
             %Output Arguments:
             %- J_P: Propeller advanced ratio.
@@ -139,7 +131,7 @@ classdef actuatorClass
             u = vel(1);
             v = vel(2);
             r = vel(3);
-            n_P = ctrl_actual(1) / 60; % rpm--rps
+            n_P = obj.ctrl_actual(1) / 60; % rpm--rps
             U = sqrt(u ^ 2 + v ^ 2);
             r_dash = r * L / U;
             % Calculate hull drift angle at midship
@@ -160,11 +152,11 @@ classdef actuatorClass
 
             K_T = k_2 * J_P ^ 2 + k_1 * J_P + k_0; % Propeller thrust open water characteristic
             T = rho_water * n_P ^ 2 * D_P ^ 4 * K_T; % Propeller thrust
-            F_P = [(1 - t_P) * T; 0; 0];
+            obj.F_P = [(1 - t_P) * T; 0; 0];
 
         end
 
-        function F_R = get_rud_force(obj, vel, ctrl_actual, J_P, K_T)
+        function obj = get_rud_force(obj, vel, J_P, K_T)
             %This function provides a rudder force model.
             %Output Arguments:
             %- F_R (list): Rudder force matrix.
@@ -190,7 +182,7 @@ classdef actuatorClass
             u = vel(1);
             v = vel(2);
             r = vel(3);
-            delta = ctrl_actual(2) * pi / 180;
+            delta = obj.ctrl_actual(2) * pi / 180;
             U = sqrt(u ^ 2 + v ^ 2);
             r_dash = r * L / U;
             % Calculate hull drift angle at midship
@@ -210,18 +202,18 @@ classdef actuatorClass
             aspect = B_R / C_R; % Rudder aspect ratio
             f_alpha = 6.13 * aspect / (aspect + 2.25); % Rudder lift gradient coefficient
             F_N = 0.5 * rho_water * A_R * U_R ^ 2 * f_alpha * sin(alpha_R); % Rudder force
-            F_R = [- (1 - t_R) * F_N * sin(delta);
-                   - (1 + alpha_H) * F_N * cos(delta);
-                   - (x_R_dash * L + alpha_H * x_H_dash * L) * F_N * cos(delta)];
+            obj.F_R = [- (1 - t_R) * F_N * sin(delta);
+                       - (1 + alpha_H) * F_N * cos(delta);
+                       - (x_R_dash * L + alpha_H * x_H_dash * L) * F_N * cos(delta)];
 
         end
 
-        function tau_act = get_act_force(obj, F_P, F_R)
+        function obj = get_act_force(obj)
             %This function combines forces from all actuation devices and produces a total actuation force.
             %Output Arguments:
             %- tau_act (list): Actuator force matrix.
 
-            tau_act = F_P + F_R;
+            obj.tau_act = obj.F_P + obj.F_R;
 
         end
 

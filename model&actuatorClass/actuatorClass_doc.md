@@ -10,18 +10,14 @@ Datatype dictionary: Require MATLAB R2022b or higher.
 
 ## Properties
 
-- ship_dim: Ship dimensions.
-- env_set: External environment.
-- prop_params: Propeller force model parameters.
-- rud_params: Rudder force model parameters.
-- h: Sample time in s.
-- ctrl_last: Last step Control actions (n_k, delta_k).
-- ctrl_command: Control commands (n_c, delta_c).
-- ctrl_actual: Actual control actions (n, delta).
-- vel: Ship velocity (u, v, r).
-- F_P: Propeller force.
-- F_R: Rudder force.
-- tau_act: Total actuation force.
+- ship_dim: Ship dimensions. datatype: Dictionary.
+- env_set: External environment. datatype: Dictionary.
+- prop_params: Propeller force model parameters. datatype: Dictionary.
+- rud_params: Rudder force model parameters. datatype: Dictionary.
+- ctrl_actual: Actual control actions (n, delta). datatype: array (1, 2).
+- F_P: Propeller force. datatype: array (3, 1).
+- F_R: Rudder force. datatype: array (3, 1).
+- tau_act: Total actuation force. datatype: array (3, 1).
 
 ## Methods
 
