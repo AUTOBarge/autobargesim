@@ -35,10 +35,10 @@ classdef modelClass
         env_set
         dyn_model_params
         ref_model_params
-        sensor_state (6, 1) double = zeros(6, 1)
-        sensor_state_dot (6, 1) double = zeros(6, 1)
-        ref_state (6, 1) double = zeros(6, 1)
-        ref_state_dot (6, 1) double = zeros(6, 1)
+        sensor_state
+        sensor_state_dot
+        ref_state
+        ref_state_dot
     end
 
     % Constructor
@@ -184,6 +184,10 @@ classdef modelClass
             U = sqrt(u ^ 2 + v ^ 2);
             v_dash = v / U;
             r_dash = r * L / U;
+            if U == 0
+                v_dash = 0;
+                r_dash = 0;
+            end
             F_cal = 0.5 * rho_water * L * d * U ^ 2;
             N_cal = 0.5 * rho_water * L ^ 2 * d * U ^ 2;
 
@@ -248,6 +252,10 @@ classdef modelClass
             U = sqrt(u ^ 2 + v ^ 2);
             v_dash = v / U;
             r_dash = r * L / U;
+            if U == 0
+                v_dash = 0;
+                r_dash = 0;
+            end
             F_cal = 0.5 * rho_water * L * d * U ^ 2;
             N_cal = 0.5 * rho_water * L ^ 2 * d * U ^ 2;
 

@@ -9,8 +9,8 @@ ship_dim = dictionary("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05
 env_set = dictionary("rho_water", 1000, "H_d", 2);
 prop_params = dictionary("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
 rud_params = dictionary("C_R", 1.6, "B_R", 1.4, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
-initial_state = [4 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
-initial_ctrl = [340 0]; % Initial control
+initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
+initial_ctrl = [0 0]; % Initial control
 
 %% Initialization
 Vessel = modelClass(ship_dim, env_set);
