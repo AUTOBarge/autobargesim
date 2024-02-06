@@ -1,26 +1,15 @@
-# {Class Name}
+# Mission Planner
 
 ## About
-Describe the basic functionality of the class.
+The objective of this class is to create a mission plan for each vessel.
 
 ## Dependencies
-Mention any third party libraries or Matlab toolboxes that do not come with the base package of Matlab but required for the functionality of the class.
+N/A
 
 ## Features
-Describe the methods (functions) available for the user. Follow the example below created using the [Sine](https://www.mathworks.com/help/matlab/ref/sin.html) function in Matlab.
-- ### Sine():
-  #### Syntax
-    Y = sin(X)
-  #### Description
-    Returns the sine of the elements of X. The sin function operates element-wise on arrays. The function accepts both real and complex inputs.
-  #### Inputs
-    | Name | Input Type | Data Type | Range | Description |
-    | --- | --- | --- | --- | --- |
-    | X | scalar,vector,matrix,multidimensional array,table,timetable | single,double,table,timetable | N/A | Input angle in radians|
-  #### Outputs
-    | Name | Input Type | Data Type | Range | Description |
-    | --- | --- | --- | --- | --- |
-    | Y | scalar,vector,matrix,multidimensional array,table,timetable | N/A | N/A | Sine of input angle |
+The following methods are avialble for the user:
+- ### M = mission(pos, speed):
+  This method is used to create the mission plan matrix **M** using the position coordinates and the expected speeds at each waypoint.
 
 ## Contact
-Add contact details of the authors.
+Dhanika Mahipala: dhanika.mahipala@km.kongsberg.com
