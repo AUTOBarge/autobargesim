@@ -21,7 +21,7 @@ classdef mission
         % INPUTS:
         %       pos -> position coordinate array of the waypoints 
         %              (with reference to the inertial coordinate system) 
-        %              in meters.
+        %              in meters: [x_n, y_n]
         %              size (: x 2) | matrix | double
         %       speed -> speed vector containing the expected speed at each
         %                waypoint in 'm/s'
