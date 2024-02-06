@@ -16,10 +16,12 @@ classdef mission
         %             x_n, y_n, U_n]
         %            
         %             where n is the number of waypoints. x and y are in
-        %             'm' while U is in 'm/s' unit.
+        %             'm' while U is in 'm/s' unit. 
         %
         % INPUTS:
-        %       pos -> position coordinate array of the waypoints in 'm'.
+        %       pos -> position coordinate array of the waypoints 
+        %              (with reference to the inertial coordinate system) 
+        %              in meters.
         %              size (: x 2) | matrix | double
         %       speed -> speed vector containing the expected speed at each
         %                waypoint in 'm/s'
