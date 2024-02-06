@@ -12,6 +12,6 @@ speed = [5, 10, 15];
 %% Program
 M = mission(pos, speed);
 
-position_vector = M.pos_vec
+position_matrix = M.pos_vec
 speed_vector = M.speed_vec
 mission_plan = M.mission_plan
