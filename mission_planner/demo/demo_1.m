@@ -9,6 +9,7 @@ pos = [50, 50;
        100, 150];
 speed = [5, 10, 15];
 
+%% Program
 M = mission(pos, speed);
 
 position_vector = M.pos_vec
