@@ -1,15 +1,13 @@
 classdef LOSguidance < guidance
-    properties (Constant, Hidden, Access=private)
+    properties (Constant, Hidden)
         default_K_p = 1.0 / 20.0;
-        default_R_a = 5.0;
-        default_pass_angle_threshold = 90.0;
     end
 
     properties 
         K_p
     end
     
-    methods (Access=public)
+    methods
         function losgObj = LOSguidance(varargin)
             % Creates an instance of the LOS guidance class.
             % losg = LOSguidance(Kp, Ra, pass_angle_threshold)
@@ -25,8 +23,8 @@ classdef LOSguidance < guidance
             p = inputParser;
             p.KeepUnmatched = true;
             addParameter(p, 'K_p', LOSguidance.default_K_p, @(x) validateattributes(x, {'double'}, {'scalar'}));
-            addParameter(p, 'R_a', LOSguidance.default_R_a);
-            addParameter(p, 'pass_angle_threshold', LOSguidance.default_pass_angle_threshold);
+            addParameter(p, 'R_a', guidance.default_R_a);
+            addParameter(p, 'pass_angle_threshold', guidance.default_pass_angle_threshold);
             parse(p, varargin{:});
             
             losgObj = losgObj@guidance('R_a', p.Results.R_a, 'pass_angle_threshold', p.Results.pass_angle_threshold);
@@ -77,7 +75,7 @@ classdef LOSguidance < guidance
             e = -(x(1) - wp_pos(1, wp_idx)) * sin(alpha) + (x(2) - wp_pos(2, wp_idx)) * cos(alpha);
 
             chi_r = atan2(-(self.K_p * e), 1);
-            chi_d = guidance.wrap_angle_to_pmpi(alpha + chi_r);
+            chi_d = utils.wrap_angle_to_pmpi(alpha + chi_r);
             U_d = wp_speed(wp_idx);
         end
         function wp_idx = find_active_wp_segment(self, wp_pos, x, wp_idx)
@@ -140,7 +138,7 @@ classdef LOSguidance < guidance
 % -------------------------------------------------- %
     end
 
-    methods(Access=private)
+    methods (Hidden)
         function segment_passed = check_for_wp_segment_switch(self, wp_segment, d_0wp)
             % Checks if a switch should be made from the current to the next
             % waypoint segment.
@@ -152,9 +150,9 @@ classdef LOSguidance < guidance
             % Returns:
             %    bool: If the switch should be made or not.
             %
-            wp_segment = guidance.normalize_vec(wp_segment);
+            wp_segment = utils.normalize_vec(wp_segment);
             d_0wp_norm = norm(d_0wp);
-            d_0wp = guidance.normalize_vec(d_0wp);
+            d_0wp = utils.normalize_vec(d_0wp);
             
             segment_passed = dot(wp_segment, d_0wp) < cos(deg2rad(self.pass_angle_threshold));
         
