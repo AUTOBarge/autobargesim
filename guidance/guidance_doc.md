@@ -8,6 +8,8 @@ N/A
 
 ## Features
 The following methods are avialble for the user:
+- #### losg = LOSguidance(Kp, Ra, pass_angle_threshold):
+  This constructor can be used to create an instance of the **LOSguidance** class.
 - #### [chi_d, U_d] = compute_LOSRef(wp_pos, wp_speed, x, wp_idx):
   This method is used to calculate reference course angles and speed commands.
 - #### wp_idx = find_active_wp_segment(wp_pos, x, wp_idx):
