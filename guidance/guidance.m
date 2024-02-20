@@ -10,16 +10,16 @@ classdef guidance
     end
     
     methods
-        function g = guidance(varargin) % change to NameValueArgs
+        function g = guidance(varargin) 
         % Creates an instance of the guidance class.
         % g = guidance(Ra, pass_angle_threshold)
         %
         % INPUTS:
         %       Ra -> Radius of acceptance, second threshold for switching 
-        %             between wp segments.
+        %             between wp segments (optional).
         %             scalar | double
         %       pass_angle_threshold -> First threshold for switching between 
-        %                               wp segments in degrees.
+        %                               wp segments in degrees (optional).
         %                               scalar | double
             p = inputParser;
             p.KeepUnmatched = true;

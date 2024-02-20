@@ -14,7 +14,7 @@ classdef LOSguidance < guidance
             %
             % INPUTS:
             %       Kp -> Proportional gain in LOS law, K_p = 1 / lookahead 
-            %             distance.
+            %             distance (optional).
             %             scalar | double
             %       For more information about the parameters 'Ra' and
             %       'pass_angle_threshold' type: help guidance in the command
