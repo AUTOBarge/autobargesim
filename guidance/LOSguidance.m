@@ -30,7 +30,7 @@ classdef LOSguidance < guidance
             losgObj = losgObj@guidance('R_a', p.Results.R_a, 'pass_angle_threshold', p.Results.pass_angle_threshold);
             losgObj.K_p = p.Results.K_p;
         end
-        function [chi_d, U_d] = compute_LOSRef(self, wp_pos, wp_speed, x, wp_idx)
+        function [chi_d, U_d, wp_idx] = compute_LOSRef(self, wp_pos, wp_speed, x, wp_idx)
             % Compute reference course angles and speeds using the LOS guidance
             % law.
             % [chi_d, U_d] = compute_LOSRef(waypoints, speed_plan, x_k, wp_counter)
@@ -59,6 +59,8 @@ classdef LOSguidance < guidance
             validateattributes(wp_speed, {'double'}, {'size', [NaN,1]})
             validateattributes(x, {'double'}, {'size', [1,4]})
             validateattributes(wp_idx, {'double'}, {'scalar'})
+
+            wp_idx = self.find_active_wp_segment(wp_pos, x, wp_idx);
 
             wp_pos = wp_pos';
             wp_speed = wp_speed';
