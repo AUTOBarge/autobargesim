@@ -14,16 +14,16 @@ wp_idx = 1;
 
 los = LOSguidance();
 state = x; %[x, y, chi, U]
-Tp=0.1; %sampling time
+Tp=0.05; %sampling time
 state_new =zeros(1,4);
 % inside the loop
-for i=1:300
+for i=1:600
 wp_idx = los.find_active_wp_segment(wp_pos, state, wp_idx);
 
 [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, state, wp_idx);
 % Update state
-state_new(1) =state(1) + Tp*U*sin(state(3));
-state_new(2) =state(2) + Tp*U*cos(state(3));
+state_new(1) =state(1) + Tp*U*cos(state(3));
+state_new(2) =state(2) + Tp*U*sin(state(3));
 state_new(3) =chi;
 state_new(4) =U;
 state=state_new;
@@ -32,7 +32,7 @@ cla
 plot(wp_pos(:,1),wp_pos(:,2),'-*r')
 hold on
 plot(state(1),state(2),'ob',LineWidth=2);
-plot([state(1),state(1)+2*sin(state(3))],[state(2),state(2)+2*cos(state(3))],'-b',LineWidth=2);
+plot([state(1),state(1)+2*cos(state(3))],[state(2),state(2)+2*sin(state(3))],'-b',LineWidth=2);
 pause(0.01);
 end
 % inside the loop
