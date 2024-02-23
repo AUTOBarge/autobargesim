@@ -70,8 +70,8 @@ classdef actuatorClass
             delta_l = ctrl_last(2);
             n_c = ctrl_command(1);
             delta_c = ctrl_command(2);
-            n_dot = obj.prop_params("n_dot"); % rpm/s
-            delta_dot = obj.rud_params("delta_dot"); % deg/s
+            n_dot = obj.prop_params.n_dot; % rpm/s
+            delta_dot = obj.rud_params.delta_dot; % deg/s
 
             %% Update rpm
             if n_c ~= n_l
@@ -116,16 +116,16 @@ classdef actuatorClass
             %- F_P (list): Propeller force matrix.
 
             %% Load paramters
-            scale = obj.ship_dim("scale");
-            L = obj.ship_dim("L"); % Ship length
-            D_P = obj.prop_params("D_P") / scale; % Propeller diameter in m
-            x_P_dash = obj.prop_params("x_P_dash"); % Longitudinal coordinate of propeller position in m
-            t_P = obj.prop_params("t_P"); % Thrust deduction factor
-            w_P0 = obj.prop_params("w_P0"); % Wake coefficient at propeller position in straight moving
-            k_0 = obj.prop_params("k_0");
-            k_1 = obj.prop_params("k_1");
-            k_2 = obj.prop_params("k_2");
-            rho_water = obj.env_set("rho_water"); % Water density in kg/m^3
+            scale = obj.ship_dim.scale;
+            L = obj.ship_dim.L; % Ship length
+            D_P = obj.prop_params.D_P / scale; % Propeller diameter in m
+            x_P_dash = obj.prop_params.x_P_dash; % Longitudinal coordinate of propeller position in m
+            t_P = obj.prop_params.t_P; % Thrust deduction factor
+            w_P0 = obj.prop_params.w_P0; % Wake coefficient at propeller position in straight moving
+            k_0 = obj.prop_params.k_0;
+            k_1 = obj.prop_params.k_1;
+            k_2 = obj.prop_params.k_2;
+            rho_water = obj.env_set.rho_water; % Water density in kg/m^3
 
             %% Propeller force model
             u = vel(1);
@@ -164,21 +164,21 @@ classdef actuatorClass
             %- F_R (list): Rudder force matrix.
 
             %% Load paramters
-            scale = obj.ship_dim("scale");
-            L = obj.ship_dim("L"); % Ship length
-            D_P = obj.prop_params("D_P") / scale; % Propeller diameter in m
-            w_P0 = obj.prop_params("w_P0"); % Wake coefficient at propeller position in straight moving
-            C_R = obj.rud_params("B_R") / scale; % Averaged rudder chord length
-            B_R = obj.rud_params("B_R") / scale; % Rudder span
-            l_R_dash = obj.rud_params("l_R_dash"); % Effective longitudinal coordinate of rudder position
-            t_R = obj.rud_params("t_R"); % Steering resistance deduction factor
-            alpha_H = obj.rud_params("alpha_H"); % Rudder force increase factor
-            gamma_R = obj.rud_params("gamma_R"); % Flow straightening coefficient
-            epsilon = obj.rud_params("epsilon"); % Ratio of wake fraction at rudder position to that at propeller position
-            kappa = obj.rud_params("kappa"); % An experimental constant for expressing u_R
-            x_R_dash = obj.rud_params("x_R_dash"); % Longitudinal coordinate of rudder position
-            x_H_dash = obj.rud_params("x_H_dash"); % Longitudinal coordinate of acting point of the additional lateral force
-            rho_water = obj.env_set("rho_water"); % Water density in kg/m^3
+            scale = obj.ship_dim.scale;
+            L = obj.ship_dim.L; % Ship length
+            D_P = obj.prop_params.D_P / scale; % Propeller diameter in m
+            w_P0 = obj.prop_params.w_P0; % Wake coefficient at propeller position in straight moving
+            C_R = obj.rud_params.B_R / scale; % Averaged rudder chord length
+            B_R = obj.rud_params.B_R / scale; % Rudder span
+            l_R_dash = obj.rud_params.l_R_dash; % Effective longitudinal coordinate of rudder position
+            t_R = obj.rud_params.t_R; % Steering resistance deduction factor
+            alpha_H = obj.rud_params.alpha_H; % Rudder force increase factor
+            gamma_R = obj.rud_params.gamma_R; % Flow straightening coefficient
+            epsilon = obj.rud_params.epsilon; % Ratio of wake fraction at rudder position to that at propeller position
+            kappa = obj.rud_params.kappa; % An experimental constant for expressing u_R
+            x_R_dash = obj.rud_params.x_R_dash; % Longitudinal coordinate of rudder position
+            x_H_dash = obj.rud_params.x_H_dash; % Longitudinal coordinate of acting point of the additional lateral force
+            rho_water = obj.env_set.rho_water; % Water density in kg/m^3
 
             %% Ruddr force model
             u = vel(1);

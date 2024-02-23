@@ -66,21 +66,21 @@ classdef modelClass
             %- obj.ref_model_params (dic): Parameters in the control reference model.
 
             %% Load environment setting
-            rho_water = obj.env_set("rho_water"); % Water density in kg/m^3
-            H_d = obj.env_set("H_d"); % Ratio of water depth (h) to ship draught
+            rho_water = obj.env_set.rho_water; % Water density in kg/m^3
+            H_d = obj.env_set.H_d; % Ratio of water depth (h) to ship draught
 
             %% Load ship dimensions
-            scale = obj.ship_dim("scale"); % Scale factor
-            disp = obj.ship_dim("disp") / scale ^ 3; % ship displacement in m^3
-            L = obj.ship_dim("L") / scale; % Ship length in m
-            L_R = obj.ship_dim("L_R") / scale; % Ship run length in m
-            B = obj.ship_dim("B") / scale; % Ship breadth in m
-            d = obj.ship_dim("d") / scale; % Ship draught in m
-            C_b = obj.ship_dim("C_b"); % Block coefficient
-            C_p = obj.ship_dim("C_p"); % Prismatic coefficient
-            S = obj.ship_dim("S") / scale ^ 2; % Wetted surface area in m^2
-            u_0 = obj.ship_dim("u_0") / sqrt(scale); % Ship service speed in m/s
-            x_G = obj.ship_dim("x_G") / scale; % Gravity point location in m. positive - bow; negative - stern.
+            scale = obj.ship_dim.scale; % Scale factor
+            disp = obj.ship_dim.disp / scale ^ 3; % ship displacement in m^3
+            L = obj.ship_dim.L / scale; % Ship length in m
+            L_R = obj.ship_dim.L_R / scale; % Ship run length in m
+            B = obj.ship_dim.B / scale; % Ship breadth in m
+            d = obj.ship_dim.d / scale; % Ship draught in m
+            C_b = obj.ship_dim.C_b; % Block coefficient
+            C_p = obj.ship_dim.C_p; % Prismatic coefficient
+            S = obj.ship_dim.S / scale ^ 2; % Wetted surface area in m^2
+            u_0 = obj.ship_dim.u_0 / sqrt(scale); % Ship service speed in m/s
+            x_G = obj.ship_dim.x_G / scale; % Gravity point location in m. positive - bow; negative - stern.
             m = disp * rho_water;
 
             %% Calculate non-dimensional coefficients
@@ -125,12 +125,12 @@ classdef modelClass
             N_vrr_dash = -0.075 * (1 - C_b) * L / B + 0.098;
 
             %% Construct outputs
-            dyn_model_names = ["L" "d" "rho_water" "m" "x_G" "I_zG" "m_x" "m_y" "J_z" "R_dash" "X_vv_dash" "X_rr_dash" "X_vr_dash" "Y_v_dash" "Y_vvv_dash" "Y_r_dash" "Y_rrr_dash" "Y_vvr_dash" "Y_vrr_dash" "N_v_dash" "N_vvv_dash" "N_r_dash" "N_rrr_dash" "N_vvr_dash" "N_vrr_dash"];
-            dyn_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash X_vv_dash X_rr_dash X_vr_dash Y_v_dash Y_vvv_dash Y_r_dash Y_rrr_dash Y_vvr_dash Y_vrr_dash N_v_dash N_vvv_dash N_r_dash N_rrr_dash N_vvr_dash N_vrr_dash];
-            obj.dyn_model_params = dictionary(dyn_model_names, dyn_model_wheels);
-            ref_model_names = ["L" "d" "rho_water" "m" "x_G" "I_zG" "m_x" "m_y" "J_z" "R_dash" "Y_v_dash" "Y_r_dash" "N_v_dash" "N_r_dash"];
-            ref_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash Y_v_dash Y_r_dash N_v_dash N_r_dash];
-            obj.ref_model_params = dictionary(ref_model_names, ref_model_wheels);
+            %dyn_model_names = ['L' 'd' 'rho_water' 'm' 'x_G' 'I_zG' 'm_x' 'm_y' 'J_z' 'R_dash' 'X_vv_dash' 'X_rr_dash' 'X_vr_dash' 'Y_v_dash' 'Y_vvv_dash' 'Y_r_dash' 'Y_rrr_dash' 'Y_vvr_dash' 'Y_vrr_dash' 'N_v_dash' 'N_vvv_dash' 'N_r_dash' 'N_rrr_dash' 'N_vvr_dash' 'N_vrr_dash'];
+            %dyn_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash X_vv_dash X_rr_dash X_vr_dash Y_v_dash Y_vvv_dash Y_r_dash Y_rrr_dash Y_vvr_dash Y_vrr_dash N_v_dash N_vvv_dash N_r_dash N_rrr_dash N_vvr_dash N_vrr_dash];
+            obj.dyn_model_params = struct('L',L,'d',d,'rho_water',rho_water,'m',m,'x_G',x_G,'I_zG',I_zG,'m_x',m_x,'m_y',m_y,'J_z',J_z,'R_dash',R_dash,'X_vv_dash',X_vv_dash,'X_rr_dash',X_rr_dash,'X_vr_dash',X_rr_dash,'Y_v_dash',Y_v_dash,'Y_vvv_dash',Y_vvv_dash,'Y_r_dash',Y_r_dash,'Y_rrr_dash',Y_rrr_dash,'Y_vvr_dash',Y_vvr_dash,'Y_vrr_dash',Y_vrr_dash,'N_v_dash',N_v_dash,'N_vvv_dash',N_vvv_dash,'N_r_dash',N_r_dash,'N_rrr_dash',N_rrr_dash,'N_vvr_dash',N_vvr_dash,'N_vrr_dash',N_vrr_dash);
+            %ref_model_names = ['L' 'd' 'rho_water' 'm' 'x_G' 'I_zG' 'm_x' 'm_y' 'J_z' 'R_dash' 'Y_v_dash' 'Y_r_dash' 'N_v_dash' 'N_r_dash'];
+            %ref_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash Y_v_dash Y_r_dash N_v_dash N_r_dash];
+            obj.ref_model_params = struct('L',L,'d',d,'rho_water',rho_water,'m',m,'x_G',x_G,'I_zG',I_zG,'m_x',m_x,'m_y',m_y,'J_z',J_z,'R_dash',R_dash,'Y_v_dash',Y_v_dash,'Y_r_dash',Y_r_dash,'N_v_dash',N_v_dash,'N_r_dash',N_r_dash);
 
         end
 
@@ -154,31 +154,31 @@ classdef modelClass
             psi = obj.sensor_state(6);
 
             %% Load model parameters
-            L = obj.dyn_model_params("L");
-            d = obj.dyn_model_params("d");
-            rho_water = obj.dyn_model_params("rho_water");
-            m = obj.dyn_model_params("m");
-            x_G = obj.dyn_model_params("x_G");
-            I_zG = obj.dyn_model_params("I_zG");
-            m_x = obj.dyn_model_params("m_x");
-            m_y = obj.dyn_model_params("m_y");
-            J_z = obj.dyn_model_params("J_z");
-            R_dash = obj.dyn_model_params("R_dash");
-            X_vv_dash = obj.dyn_model_params("X_vv_dash");
-            X_rr_dash = obj.dyn_model_params("X_rr_dash");
-            X_vr_dash = obj.dyn_model_params("X_vr_dash");
-            Y_v_dash = obj.dyn_model_params("Y_v_dash");
-            Y_vvv_dash = obj.dyn_model_params("Y_vvv_dash");
-            Y_r_dash = obj.dyn_model_params("Y_r_dash");
-            Y_rrr_dash = obj.dyn_model_params("Y_rrr_dash");
-            Y_vvr_dash = obj.dyn_model_params("Y_vvr_dash");
-            Y_vrr_dash = obj.dyn_model_params("Y_vrr_dash");
-            N_v_dash = obj.dyn_model_params("N_v_dash");
-            N_vvv_dash = obj.dyn_model_params("N_vvv_dash");
-            N_r_dash = obj.dyn_model_params("N_r_dash");
-            N_rrr_dash = obj.dyn_model_params("N_rrr_dash");
-            N_vvr_dash = obj.dyn_model_params("N_vvr_dash");
-            N_vrr_dash = obj.dyn_model_params("N_vrr_dash");
+            L = obj.dyn_model_params.L;
+            d = obj.dyn_model_params.d;
+            rho_water = obj.dyn_model_params.rho_water;
+            m = obj.dyn_model_params.m;
+            x_G = obj.dyn_model_params.x_G;
+            I_zG = obj.dyn_model_params.I_zG;
+            m_x = obj.dyn_model_params.m_x;
+            m_y = obj.dyn_model_params.m_y;
+            J_z = obj.dyn_model_params.J_z;
+            R_dash = obj.dyn_model_params.R_dash;
+            X_vv_dash = obj.dyn_model_params.X_vv_dash;
+            X_rr_dash = obj.dyn_model_params.X_rr_dash;
+            X_vr_dash = obj.dyn_model_params.X_vr_dash;
+            Y_v_dash = obj.dyn_model_params.Y_v_dash;
+            Y_vvv_dash = obj.dyn_model_params.Y_vvv_dash;
+            Y_r_dash = obj.dyn_model_params.Y_r_dash;
+            Y_rrr_dash = obj.dyn_model_params.Y_rrr_dash;
+            Y_vvr_dash = obj.dyn_model_params.Y_vvr_dash;
+            Y_vrr_dash = obj.dyn_model_params.Y_vrr_dash;
+            N_v_dash = obj.dyn_model_params.N_v_dash;
+            N_vvv_dash = obj.dyn_model_params.N_vvv_dash;
+            N_r_dash = obj.dyn_model_params.N_r_dash;
+            N_rrr_dash = obj.dyn_model_params.N_rrr_dash;
+            N_vvr_dash = obj.dyn_model_params.N_vvr_dash;
+            N_vrr_dash = obj.dyn_model_params.N_vrr_dash;
 
             %% Non-dimensionalize
             U = sqrt(u ^ 2 + v ^ 2);
@@ -233,20 +233,20 @@ classdef modelClass
             psi = obj.ref_state(6);
 
             %% Load model parameters
-            L = obj.ref_model_params("L");
-            d = obj.ref_model_params("d");
-            rho_water = obj.ref_model_params("rho_water");
-            m = obj.ref_model_params("m");
-            x_G = obj.ref_model_params("x_G");
-            I_zG = obj.ref_model_params("I_zG");
-            m_x = obj.ref_model_params("m_x");
-            m_y = obj.ref_model_params("m_y");
-            J_z = obj.ref_model_params("J_z");
-            R_dash = obj.ref_model_params("R_dash");
-            Y_v_dash = obj.ref_model_params("Y_v_dash");
-            Y_r_dash = obj.ref_model_params("Y_r_dash");
-            N_v_dash = obj.ref_model_params("N_v_dash");
-            N_r_dash = obj.ref_model_params("N_r_dash");
+            L = obj.ref_model_params.L;
+            d = obj.ref_model_params.d;
+            rho_water = obj.ref_model_params.rho_water;
+            m = obj.ref_model_params.m;
+            x_G = obj.ref_model_params.x_G;
+            I_zG = obj.ref_model_params.I_zG;
+            m_x = obj.ref_model_params.m_x;
+            m_y = obj.ref_model_params.m_y;
+            J_z = obj.ref_model_params.J_z;
+            R_dash = obj.ref_model_params.R_dash;
+            Y_v_dash = obj.ref_model_params.Y_v_dash;
+            Y_r_dash = obj.ref_model_params.Y_r_dash;
+            N_v_dash = obj.ref_model_params.N_v_dash;
+            N_r_dash = obj.ref_model_params.N_r_dash;
 
             %% Non-dimensionalize
             U = sqrt(u ^ 2 + v ^ 2);
