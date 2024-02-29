@@ -6,7 +6,7 @@ Simulate ship motion. You can change the settings at the top of the demo file.
 
 ## Dependencies
 
-Datatype dictionary: Require MATLAB R2022b or higher.
+None
 
 ## Setup
 
