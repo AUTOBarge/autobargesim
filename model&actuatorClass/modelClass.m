@@ -5,10 +5,10 @@ classdef modelClass
     %   This class provides dynamic models as virtual sensor / control reference model based on provided ship dimensions, environment setting and actuating forces from actuatorClass.
     %
     % Properties:
-    %   - ship_dim: Ship dimensions. datatype: Dictionary.
-    %   - env_set: External environment. datatype: Dictionary.
-    %   - dyn_model_params: Parameters in the sensor dynamic model. datatype: Dictionary.
-    %   - ref_model_params: Parameters in the control reference model. datatype: Dictionary.
+    %   - ship_dim: Ship dimensions. datatype: structure array.
+    %   - env_set: External environment. datatype: structure array.
+    %   - dyn_model_params: Parameters in the sensor dynamic model. datatype: structure array.
+    %   - ref_model_params: Parameters in the control reference model. datatype: structure array.
     %   - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
     %   - sensor_state_dot: Output (state_dot) of sensor dynamic model. datatype: array (6, 1).
     %   - ref_state: States used in control reference model. datatype: array (6, 1).

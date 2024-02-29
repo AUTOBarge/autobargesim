@@ -6,14 +6,14 @@ This class provides a force model for actuators.
 
 ## Dependencies
 
-Datatype dictionary: Require MATLAB R2022b or higher.
+None
 
 ## Properties
 
-- ship_dim: Ship dimensions. datatype: Dictionary.
-- env_set: External environment. datatype: Dictionary.
-- prop_params: Propeller force model parameters. datatype: Dictionary.
-- rud_params: Rudder force model parameters. datatype: Dictionary.
+- ship_dim: Ship dimensions. datatype: structure array.
+- env_set: External environment. datatype: structure array.
+- prop_params: Propeller force model parameters. datatype: structure array.
+- rud_params: Rudder force model parameters. datatype: structure array.
 - ctrl_actual: Actual control actions (n, delta). datatype: array (1, 2).
 - F_P: Propeller force. datatype: array (3, 1).
 - F_R: Rudder force. datatype: array (3, 1).
