@@ -16,3 +16,4 @@ Make sure fill in the settings correctly.
 
 demo1 gives plots of straight sailing starting from still.
 demo2 gives plots of turning maneuver starting from sailing at service speed.
+demo3 gives plots of zigzag maneuver starting from sailing at service speed.
