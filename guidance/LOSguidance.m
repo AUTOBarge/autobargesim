@@ -16,9 +16,9 @@ classdef LOSguidance < guidance
             %       Kp -> Proportional gain in LOS law, K_p = 1 / lookahead 
             %             distance.
             %             scalar | double
-            %       For more information about the parameters 'Ra' and
-            %       'pass_angle_threshold' type: help guidance in the command
-            %       window.
+            %       Ra, pass_angle_threshold ->
+            %             For more information about these parameters 
+            %             type: 'help guidance' in the command window.
             
             p = inputParser;
             p.KeepUnmatched = true;
@@ -30,10 +30,10 @@ classdef LOSguidance < guidance
             losgObj = losgObj@guidance('R_a', p.Results.R_a, 'pass_angle_threshold', p.Results.pass_angle_threshold);
             losgObj.K_p = p.Results.K_p;
         end
-        function [chi_d, U_d] = compute_LOSRef(self, wp_pos, wp_speed, x, wp_idx,angle_out)
+        function [chi_d, U_d] = compute_LOSRef(self, wp_pos, wp_speed, x, wp_idx, angle_out)
             % Compute reference course angles and speeds using the LOS guidance
             % law.
-            % [chi_d, U_d] = compute_LOSRef(waypoints, speed_plan, x_k, wp_counter)
+            % [chi_d, U_d] = compute_LOSRef(wp_pos, wp_speed, x, wp_idx, angle_out)
             %           
             % INPUTS:
             %       wp_pos -> list of position coordinates of the waypoints
@@ -56,14 +56,15 @@ classdef LOSguidance < guidance
             %                 scalar | double
             %       angle_out -> preference angle output: 1 <=> course angle;
             %                                             2 <=> heading angle.
-            x_los= [x(4),x(5),x(6),sqrt(x(1)^2+x(2)^2)]; %x_los = [x y psi U]
+            
             validateattributes(wp_pos, {'double'}, {'size', [NaN,2]})
             validateattributes(wp_speed, {'double'}, {'size', [NaN,1]})
-            validateattributes(x_los, {'double'}, {'size', [1,4]})
+            validateattributes(x, {'double'}, {'size', [1,6]})
             validateattributes(wp_idx, {'double'}, {'scalar'})
-
+            
             wp_pos = wp_pos';
             wp_speed = wp_speed';
+            x_los= [x(4), x(5), x(6), sqrt(x(1)^2+x(2)^2)]; % x_los = [x y psi U]
             x_los = x_los';
 
             n_wps = length(wp_speed);
