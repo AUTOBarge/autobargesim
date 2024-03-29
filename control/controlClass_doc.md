@@ -12,8 +12,8 @@ For executing the MPC controller, the Casadi tool for MATLAB is required (https:
 
 - pid_params: Contains the PID controller gains(K_p, K_i, K_d), psi_d_old: desired heading angle for next iteration, and
  error_old: heading tracking error for next iteration. datatype: struct. 
-- mpc_params: Contains MPC gains/weight matrices: Q, R. datatype: struct. 
-- Flag_cont: To select the controller type (PID, MPC). datatype: double. 
+- mpc_params: mpc_params = struct('Ts', sampling time, 'N', Prediction horizon, 'headingGain', Q in the cost function, 'rudderGain', R in the cost function, 'max_iter', maximum iteration of the MPC solver, 'deltaMAX', maximum allowed rudder angle)
+- Flag_cont: Reserved to act as a method to select the controller type (PID, MPC). (Just put 0 or 1 the outcome is the same at the moment).
 
 ## Methods
 
