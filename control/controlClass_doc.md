@@ -18,6 +18,8 @@ For executing the MPC controller, the Casadi tool for MATLAB is required (https:
 ## Methods
 
 - init_mpc: This function implements the high-level controller.
+- initial_guess_creator: Providing it with initial states and control values this method will create the initial guess for the MPC solver
+- constraintcreator: This method forms the constraint vectors
 - LowLevelPIDCtrl: This method implements the low-level PID controller.
 - LowLevelMPCCtrl: This method implements the low-level MPC controller.
    
