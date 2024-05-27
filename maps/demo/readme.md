@@ -48,4 +48,5 @@ pl = pl.plan_path(given_point1, given_point2);
 pl.plot_path(1);
 ```
 ## Results
-to be added
+![ENC_graph_part](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/part.png)
+![ENC_graph](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/all.png)
