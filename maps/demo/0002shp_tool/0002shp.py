@@ -2,7 +2,7 @@ from osgeo import ogr
 ogr.UseExceptions()
 # Input and output file paths
 input_name = "7V7ZEEK1"
-output_dir = "./output"
+output_dir = r"E:\Git\simulator-dev\maps\demo\.shp\new_files"
 desirenames = ["lndare", "bridge", "wtwaxs", "depare", "notmrk"]
 # Open .000
 input_file = f"{input_name}.000"
