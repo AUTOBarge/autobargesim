@@ -16,7 +16,7 @@ Follow the steps below to run this demo:
 
 > It is recommended not to use Depth areas with multiple layers and unsurveyed areas as 'depare' input (e.g., .7V7ZEEK1, 7V7RUP03), as this will result in unpredictable runtime and unknown errors.
 
-> Please select a connected .000 file as input, otherwise the correct route cannot be determined.
+> Please select connected .000 files as input, otherwise the correct route cannot be determined.
 ``` Matlab
 addpath( 'pwd'); % Set the +maps (namespace) path
 folder = 'pwd';  % Set the folder path for reading .shp files
