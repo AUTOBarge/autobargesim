@@ -5,7 +5,8 @@ The 'maps.processor' class will be used to display the desired area to the user.
 
 ## Dependencies
 The following toolboxes are required:
-- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html) 
+- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html)
+- [Statistics and Machine Learning Toolbox](https://se.mathworks.com/products/statistics.html)
 
 ## Setup
 Follow the steps below to run this demo:
