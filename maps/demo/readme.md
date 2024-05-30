@@ -5,7 +5,8 @@ The 'maps.processor' class will be used to display the desired area to the user.
 
 ## Dependencies
 The following toolboxes are required:
-- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html) 
+- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html)
+- [Statistics and Machine Learning Toolbox](https://se.mathworks.com/products/statistics.html)
 
 ## Setup
 Follow the steps below to run this demo:
@@ -48,4 +49,5 @@ pl = pl.plan_path(given_point1, given_point2);
 pl.plot_path(1);
 ```
 ## Results
-to be added
+![ENC_graph_part](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/part.png)
+![ENC_graph](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/all.png)
