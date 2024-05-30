@@ -2,7 +2,7 @@ clear
 clc
 close all
 addpath( 'E:\Git\simulator-dev\maps'); % Set the +maps (namespace) path
-folder = 'E:\Git\simulator-dev\maps\demo\.shp\Albert canal';  % Set the folder path for reading .shp files
+folder = 'E:\Git\simulator-dev\maps\demo\.shp\Leuven area';  % Set the folder path for reading .shp files
 desirename=["depare","bridge","wtwaxs","lndare"]; %give the desirename %"notmrk"
 
 p = maps.processor(desirename, folder);

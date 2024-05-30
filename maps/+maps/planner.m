@@ -140,6 +140,25 @@ classdef planner
 
             hold off;
         end
+
+            function plot_path_points_with_numbers(obj)
+                %only for test
+                % Plot path points with numbers
+                %pl.plot_path_points_with_numbers(); %testing
+                figure;
+                hold on;
+                
+                % Plot each point and its index
+                for i = 1:size(obj.path_points, 1)
+                    plot(obj.path_points(i, 1), obj.path_points(i, 2), 'bo', 'MarkerSize', 8);
+                    text(obj.path_points(i, 1), obj.path_points(i, 2), num2str(i), 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+                end
+                
+                title('Path Points with Numbers');
+                xlabel('X Coordinate');
+                ylabel('Y Coordinate');
+                hold off;
+        end
 end
 
 
@@ -361,6 +380,17 @@ end
                 obj.path_points = [obj.path_points; segment_points];
             end
             obj.path_points = [obj.path_points; end_path];
+            obj = obj.removeDuplicatePoints();
+
+        end
+        
+        function obj = removeDuplicatePoints(obj)
+            % Remove duplicate points from path_points, allowing each point to appear only once
+            % and maintaining the original order of appearance
+        
+            [~, unique_indices] = unique(obj.path_points, 'rows', 'stable');
+            
+            obj.path_points = obj.path_points(unique_indices, :);
         end
 
         function in_polygon = is_point_inside_polygon(obj, given_point)
