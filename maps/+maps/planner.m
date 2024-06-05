@@ -141,10 +141,12 @@ classdef planner
             hold off;
         end
 
-            function plot_path_points_with_numbers(obj)
+        function plot_path_points_with_numbers(obj)
                 %only for test
+
+                % pl.plot_path_points_with_numbers(); %testing
+                
                 % Plot path points with numbers
-                %pl.plot_path_points_with_numbers(); %testing
                 figure;
                 hold on;
                 
@@ -364,20 +366,28 @@ end
                 end_path = end_all_segment_points(end_path_index:-1:end_point_idx, :);
             end
 
-            obj.path_points = [start_path];
-            for i = 1:length(best_path)-1
-                segment_points = [];
+            obj.path_points = [start_path]; % Reset path_points to build it correctly
+            for i = 1:length(obj.best_path)-1
+                current_node = obj.best_path(i);
+                next_node = obj.best_path(i+1);
+        
+                % Find the segment that connects these nodes
                 for j = 1:length(obj.segments)
                     segment = obj.segments{j};
-                    if (ismember(obj.unique_coords(best_path(i), :), [segment.x(1), segment.y(1)], 'rows') && ...
-                        ismember(obj.unique_coords(best_path(i+1), :), [segment.x(end), segment.y(end)], 'rows')) || ...
-                       (ismember(obj.unique_coords(best_path(i+1), :), [segment.x(1), segment.y(1)], 'rows') && ...
-                        ismember(obj.unique_coords(best_path(i), :), [segment.x(end), segment.y(end)], 'rows'))
+                    start_node = find(ismember(obj.unique_coords, [segment.x(1), segment.y(1)], 'rows'));
+                    end_node = find(ismember(obj.unique_coords, [segment.x(end), segment.y(end)], 'rows'));
+                    if (start_node == current_node && end_node == next_node)
+                        % Direction is correct
                         segment_points = [segment.x(:), segment.y(:)];
-                        break;
+                    elseif (start_node == next_node && end_node == current_node)
+                        % Direction is reversed
+                        segment_points = flipud([segment.x(:), segment.y(:)]);
+                    else
+                        continue;
                     end
+                    obj.path_points = [obj.path_points; segment_points];
+                    break;
                 end
-                obj.path_points = [obj.path_points; segment_points];
             end
             obj.path_points = [obj.path_points; end_path];
             obj = obj.removeDuplicatePoints();
