@@ -4,7 +4,7 @@ function install_absim()
 	fprintf('AUTOBargeSim: MATLAB toolbox for the design and analysis of the Guidance, Navigation and Control System for autonomous inland vessels.\n');
 	fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
 	
-    folders = {'control', 'guidance', 'maps', 'mission_planner', 'model&actuatorClass'};
+    folders = {'control', 'guidance', 'maps', 'mission_planner', 'model&actuator'};
     
     currentFolder = pwd;
     
