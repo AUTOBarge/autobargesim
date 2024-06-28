@@ -11,6 +11,7 @@ None
 ## Properties
 
 - ship_dim: Ship dimensions. datatype: structure array.
+- env_set: External environment. datatype: structure array.
 - prop_params: Propeller force model parameters. datatype: structure array.
 - rud_params: Rudder force model parameters. datatype: structure array.
 - ctrl_actual: Actual control actions (n, delta). datatype: array (1, 2).
