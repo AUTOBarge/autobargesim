@@ -1,6 +1,6 @@
 classdef LOSguidance < guidance
     properties (Constant, Hidden)
-        default_K_p = 1.0 / 20.0;
+        default_K_p = 1.0 / 50.0;
     end
 
     properties 
@@ -117,7 +117,7 @@ classdef LOSguidance < guidance
                 segment_passed = self.check_for_wp_segment_switch(L_wp_segment, d_0wp_vec);
                 if segment_passed
                     wp_idx = wp_idx + 1;
-                    fprintf("Segment {%d} passed!\n", i);
+                    %fprintf("Segment {%d} passed!\n", i);
                 else
                     break;
                 end
