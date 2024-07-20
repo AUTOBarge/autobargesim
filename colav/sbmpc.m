@@ -125,7 +125,7 @@ classdef sbmpc < colav
             validateattributes(U_d, {'double'}, {'scalar'})
             validateattributes(chi_m_last, {'double'}, {'scalar'})
             validateattributes(U_m_last, {'double'}, {'scalar'})
-            validateattributes(x, {'double'}, {'2d', 'ncols', 4})
+            validateattributes(x_ts, {'double'}, {'2d', 'ncols', 4})
 
             n_samples = utils.getNumSamples(self.dt, self.T);
             Chi_ca_ = self.tuning_param.Chi_ca_;
