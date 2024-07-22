@@ -11,7 +11,7 @@ classdef colav
         T_U % tuning parameters of the internal kinematic model: speed time constant
     end
     
-    methods
+    methods (Hidden)
         function colavObj = colav(T, dt, varargin)
             validateattributes(T, {'double'}, {'scalar', '>', 0});
             validateattributes(dt, {'double'}, {'scalar', '>', 0, '<', T});
@@ -35,8 +35,6 @@ classdef colav
                 trajectory(idx, :) = self.step_vessel(trajectory(idx-1, :), u, dt);
             end
         end
-    end
-    methods (Hidden)
         function x_new = step_vessel(self, x, u, dt)            
             k1 = self.step(x, u);
             k2 = self.step(x + k1 * dt/2, u);
