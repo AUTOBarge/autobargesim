@@ -102,8 +102,8 @@ classdef sbmpc < colav
             % [chi_c, U_c, chi_m, U_m] = run_sbmpc(x, chi_d, U_d, chi_m_last, U_m_last, x_ts)
             %
             % INPUTS:
-            %       x -> own-ship state [x, y, chi, U]
-            %            size (1 x 4) | vector | double
+            %       x -> own-ship state [u, v, r, x, y, psi]
+            %            size (1 x 6) | vector | double
             %       chi_d -> course angle command from the guidance
             %                controller
             %                scalar | double
@@ -120,12 +120,14 @@ classdef sbmpc < colav
             %               size (: x 4) | matrix | double
             %
 
-            validateattributes(x, {'double'}, {'vector', 'ncols', 4})
+            validateattributes(x, {'double'}, {'vector', 'ncols', 6})
             validateattributes(chi_d, {'double'}, {'scalar'})
             validateattributes(U_d, {'double'}, {'scalar'})
             validateattributes(chi_m_last, {'double'}, {'scalar'})
             validateattributes(U_m_last, {'double'}, {'scalar'})
-            validateattributes(x_ts, {'double'}, {'2d', 'ncols', 4})
+            validateattributes(x_ts, {'double'}, {'2d', 'ncols', 6})
+
+            state = [x(4), x(5), x(6), sqrt(x(1)^2+x(2)^2)]; % x = [x, y, chi, U]
 
             n_samples = utils.getNumSamples(self.dt, self.T);
             Chi_ca_ = self.tuning_param.Chi_ca_;
@@ -136,11 +138,12 @@ classdef sbmpc < colav
                 for j = 1:length(U_ca_)
                     cost_i_max = -1;
                     
-                    ownship_traj = self.calcVesselTraj(x, [chi_d + Chi_ca_(i), U_d * U_ca_(j)], self.dt, n_samples);
-                    
+                    ownship_traj = self.calcVesselTraj(state, [chi_d + Chi_ca_(i), U_d * U_ca_(j)], self.dt, n_samples);
+                   
                     num_ts = numel(x_ts(:, 1));
                     for idx = 1:num_ts
-                        targetship_traj = self.calcVesselTraj(x_ts(idx, :), x_ts(idx, 3:4), self.dt, n_samples);
+                        state_ts = [x_ts(idx, 4), x_ts(idx, 5), x_ts(idx, 6), sqrt(x_ts(idx, 1)^2 + x_ts(idx, 2)^2)]; % x = [x, y, chi, U]
+                        targetship_traj = self.calcVesselTraj(state_ts, state_ts(3:4), self.dt, n_samples);
                         
                         [~, ~, ~, ~, ~, ~, colregs_cost] = self.calc_cost_COLREGS(ownship_traj, targetship_traj, n_samples);
                         [~, ~, collision_cost] = self.calc_cost_collision(ownship_traj, targetship_traj, self.dt, n_samples);
