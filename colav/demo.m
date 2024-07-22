@@ -37,57 +37,93 @@ clc;
 % [chi_c, U_c, chi_m, U_m] = run_sbmpc(x, chi_d, U_d, chi_m_last, U_m_last, x_ts);
 % % inside the loop
 
-% Predefined waypoints: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
-wp_pos = [50 50;
-    70 70;
-    90 100;
-    100 150];
-% Predefined surge speed at each waypoint segment: wp_speed = [U_1;...;U_n]
-wp_speed = [1;
-            1;
-            1;
-            1];
-% Initial position of own ship with respect to inertial coordinate frame: x_0 = [x, y, chi, U]
-x_0 = [0, 0, 0, 50, 45, deg2rad(45)];
+% Predefined waypoints for own-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
+wp_pos_os = [10 10;
+             140 140];
+% Predefined waypoints for target-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
+wp_pos_ts = [120 140;
+             30 10];
 
-% Starting waypoint index
-wp_idx = 1;
+% Predefined surge speed at each waypoint segment for own-ship: wp_speed = [U_1;...;U_n]
+wp_speed_os = [1; 0];
+% Predefined surge speed at each waypoint segment for target-ship: wp_speed = [U_1;...;U_n]
+wp_speed_ts = [1; 0];
 
-% Initialize LOS Guidance
-los = LOSguidance();
-
-% State of own ship w.r.t inertial coordinate frame state_x=[x, y, chi, U]
-state = x_0;
+% Starting waypoint index own-ship
+wp_idx_os = 1;
+% Starting waypoint index target-ship
+wp_idx_ts = 1;
 
 % sampling time
-Tp=0.05;
-% temporary variable
-state_new =zeros(1,6);
+Tp = 0.5;
+
+% Initialize LOS Guidance with same parameters for both vessels
+los = LOSguidance();
+
+% Initialize SBMPC only for the own-ship. Target vessel does not run any
+% collision avoidance algorithm.
+colav = sbmpc(10, Tp);
+
+% State of own ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
+state_os = [0, 0, 0, 10, 10, deg2rad(45)];
+% State of target ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
+state_ts = [0, 0, 0, 120, 140, deg2rad(135)];
+
+% Temporary variable
+state_new = zeros(1, 6);
+
+% Variables to hold previous SBMPC modifications for the guidance commands
+chi_m_last_os = 1;
+U_m_last_os = 0;
+
 % Start the loop for simulation
-% inside the loop
-for i=1:800
+for i=1:600
     % Find the active waypoint
-    wp_idx = los.find_active_wp_segment(wp_pos, state, wp_idx);
+    wp_idx_os = los.find_active_wp_segment(wp_pos_os, state_os, wp_idx_os);
+    wp_idx_ts = los.find_active_wp_segment(wp_pos_ts, state_ts, wp_idx_ts);
+
     % Call LOS algorithm
-    [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, state, wp_idx,1);
+    [chi_os, U_os] = los.compute_LOSRef(wp_pos_os, wp_speed_os, state_os, wp_idx_os, 1);
+    [chi_ts, U_ts] = los.compute_LOSRef(wp_pos_ts, wp_speed_ts, state_ts, wp_idx_ts, 1);
+
+    % Modify course and speed of the own-ship using SBMPC collision
+    % avoidance
+    [chi_os, U_os, chi_m_last_os, U_m_last_os] = colav.run_sbmpc(state_os, chi_os, U_os, ...
+                                                                 chi_m_last_os, U_m_last_os, state_ts);
 
     % Update state
-    state_new(4) =state(4) + Tp*U*cos(state(6));
-    state_new(5) =state(5) + Tp*U*sin(state(6));
-    state_new(6) =chi;
-    state_new(1) =U;
-    state=state_new;
+    state_os = vessel_model(state_os, chi_os, U_os, Tp);
+    state_ts = vessel_model(state_ts, chi_ts, U_ts, Tp);
     
     % Plot the trajectory for visualization
     cla
-    plot(wp_pos(:,1),wp_pos(:,2),'-*r')
+    plot(wp_pos_os(:,1), wp_pos_os(:,2), '-*r')
+    plot(wp_pos_ts(:,1), wp_pos_ts(:,2), '-xr')
     
     hold on
-    plot(state(4),state(5),'ob',LineWidth=2);
-    plot([state(4),state(4)+5*cos(state(6))],[state(5),state(5)+5*sin(state(6))],'-b',LineWidth=2);
+    % own-ship in blue
+    plot(state_os(4), state_os(5), 'ob', LineWidth = 2);
+    plot([state_os(4), state_os(4) + 5 * cos(state_os(6))], ...
+         [state_os(5), state_os(5) + 5 * sin(state_os(6))], ...
+         '-b', LineWidth = 2);
+    % target-ship in black
+    plot(state_ts(4), state_ts(5), 'oblack', LineWidth = 2);
+    plot([state_ts(4), state_ts(4) + 5 * cos(state_ts(6))], ...
+         [state_ts(5), state_ts(5) + 5 * sin(state_ts(6))], ...
+         '-black', LineWidth = 2);
+
     xlabel('X (m)'),ylabel('Y (m)'),grid on
     axis([0 150 0 150]);
-    legend({'waypoint','position of ship','heading direction'},'Location','southeast');
+    legend({'own-ship waypoints', 'target-ship waypoints'}, ...
+            'Location','southeast');
     pause(0.01);
 end
-% inside the loop
+
+% This is an ad-hoc kinematic vessel model used to derive the state of both
+% own-ship and target-ship at the next time step
+function state_new = vessel_model(state, chi, U, dt)
+    state_new(4) = state(4) + dt * U * cos(state(6));
+    state_new(5) = state(5) + dt * U * sin(state(6));
+    state_new(6) = chi;
+    state_new(1) = U;
+end
