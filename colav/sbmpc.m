@@ -69,11 +69,11 @@ classdef sbmpc < colav
             addParameter(p, 'U_ca_', sbmpc.default_U_ca_, @(x) validateattributes(x, {'double'}, {'vector'}));
             
             % internal vessel model parameters
-            addParameter(p, 'T_chi', sbmpc.default_U_ca_);
-            addParameter(p, 'T_U', sbmpc.default_U_ca_);
+            addParameter(p, 'T_chi', sbmpc.default_T_chi);
+            addParameter(p, 'T_U', sbmpc.default_T_U);
             parse(p, varargin{:});
 
-            sbmpcObj = sbmpcObj@colav(T, dt);
+            sbmpcObj = sbmpcObj@colav(T, dt, 'T_chi', p.Results.T_chi, 'T_U', p.Results.T_U);
             sbmpcObj.tuning_param = struct(...
                 'D_CLOSE_', p.Results.D_CLOSE_,...
                 'D_SAFE_', p.Results.D_SAFE_,...
