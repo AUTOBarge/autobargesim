@@ -1,7 +1,7 @@
 %% Description
 % This is a demo for the Scenario-Based Model Predictive Control algorithm. 
 % The ship is expected to follow the predefined waypoints (wp_pos) while
-% avoiding other target vessels
+% avoiding other target vessels.
 
 %% Program
 close all;
