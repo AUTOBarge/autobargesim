@@ -15,11 +15,11 @@ classdef sbmpc < colav
         default_Q_ = 4.0 % exponent to satisfy colregs rule 16
 
         default_K_P_ = 2.5 % cost function parameter
-        default_K_CHI_SB_ = 1.3 % cost function parameter
-        default_K_CHI_P_ = 30 % cost function parameter
+        default_K_CHI_SB_ = 0.5 % cost function parameter
+        default_K_CHI_P_ = 8.5 % cost function parameter
         default_K_DP_ = 2.0 % cost function parameter
-        default_K_DCHI_SB_ = 1.2 % cost function parameter
-        default_K_DCHI_P_ = 0.9 % cost function parameter
+        default_K_DCHI_SB_ = 0 % cost function parameter
+        default_K_DCHI_P_ = 0 % cost function parameter
 
         default_Chi_ca_ = deg2rad([-90.0, -75.0, -60.0, -45.0, -30.0, -15.0, 0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0]) % control behaviors - course offset [deg]
         default_U_ca_ = [0, 0.5, 1.0]  % control behaviors - speed factor
@@ -154,12 +154,8 @@ classdef sbmpc < colav
                             cost_i_max = cost_i;
                         end
                     end
-        
-                    if cost_i_max == -1 % when there are no other obstacles, turns to both sides must be equally penalized
-                        F = K_P_ * (1 - U_ca_(j))^2 + K_CHI_P_ * Chi_ca_(i)^2;
-                    else
-                        F = self.calc_cost_maneuvering(chi_d, U_d, Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last);
-                    end
+
+                    F = self.calc_cost_maneuvering(chi_d, U_d, Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last);
         
                     tot_cost = cost_i_max + F;
         
