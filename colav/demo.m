@@ -8,18 +8,6 @@ close all;
 clear;
 clc;
 
-% Predefined waypoints for own-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
-wp_pos_os = [10 10;
-             140 140];
-% Predefined waypoints for target-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
-wp_pos_ts = [120 140;
-             30 10];
-
-% Predefined surge speed at each waypoint segment for own-ship: wp_speed = [U_1;...;U_n]
-wp_speed_os = [1; 0];
-% Predefined surge speed at each waypoint segment for target-ship: wp_speed = [U_1;...;U_n]
-wp_speed_ts = [1; 0];
-
 % Starting waypoint index own-ship
 wp_idx_os = 1;
 % Starting waypoint index target-ship
@@ -35,10 +23,45 @@ los = LOSguidance();
 % collision avoidance algorithm.
 colav = sbmpc(10, Tp);
 
-% State of own ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
-state_os = [0, 0, 0, 10, 10, deg2rad(45)];
-% State of target ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
-state_ts = [0, 0, 0, 120, 140, deg2rad(135)];
+SCENARIO = 'HO';
+switch SCENARIO
+    case 'HO'
+        % Predefined waypoints for own-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
+        wp_pos_os = [10 10;
+                     140 140];
+        % Predefined waypoints for target-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
+        wp_pos_ts = [120 140;
+                     30 10];
+        
+        % Predefined surge speed at each waypoint segment for own-ship: wp_speed = [U_1;...;U_n]
+        wp_speed_os = [1; 0];
+        % Predefined surge speed at each waypoint segment for target-ship: wp_speed = [U_1;...;U_n]
+        wp_speed_ts = [1; 0];
+
+        % State of own ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
+        state_os = [0, 0, 0, 10, 10, deg2rad(45)];
+        % State of target ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
+        state_ts = [0, 0, 0, 120, 140, deg2rad(135)];
+    case 'CR'
+        % Predefined waypoints for own-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
+        wp_pos_os = [10 10;
+                     140 140];
+        % Predefined waypoints for target-ship: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
+        wp_pos_ts = [140 10;
+                     10 140];
+        
+        % Predefined surge speed at each waypoint segment for own-ship: wp_speed = [U_1;...;U_n]
+        wp_speed_os = [1; 0];
+        % Predefined surge speed at each waypoint segment for target-ship: wp_speed = [U_1;...;U_n]
+        wp_speed_ts = [1; 0];
+
+        % State of own ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
+        state_os = [0, 0, 0, 10, 10, deg2rad(45)];
+        % State of target ship w.r.t inertial coordinate frame state_x=[u, v, r, x, y, psi]
+        state_ts = [0, 0, 0, 140, 10, deg2rad(135)];
+    otherwise
+        error('Invalid COLREGS scenario')
+end
 
 % Temporary variable
 state_new = zeros(1, 6);
@@ -86,7 +109,7 @@ for i=1:600
     xlabel('X (m)'),ylabel('Y (m)'),grid on
     axis([0 150 0 150]);
     legend({'own-ship waypoints', 'target-ship waypoints'}, ...
-            'Location','southeast');
+            'Location','north');
     pause(0.01);
 end
 
