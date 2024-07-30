@@ -21,6 +21,7 @@ classdef guidance
         %       pass_angle_threshold -> First threshold for switching between 
         %                               wp segments in degrees (optional).
         %                               scalar | double
+
             p = inputParser;
             p.KeepUnmatched = true;
             addParameter(p, 'R_a', guidance.default_R_a, @(x) validateattributes(x, {'double'}, {'scalar'})); 
@@ -42,22 +43,24 @@ classdef guidance
             %                               ...
             %                            x_n, y_n]
             %                 size (: x 2)  | matrix | double
-            %       x -> current state of the vessel [x, y, chi, U]
+            %       x -> current state of the vessel [u, v, r, x, y, psi]
             %            size (1 x 4) | vector | double
             %       wp_idx -> current waypoint index. use the function
             %                 find_active_wp_segment() to find the current 
             %                 waypoint index.
             %                 scalar | double
-            
-            validateattributes(wp_pos, {'double'}, {'size', [NaN,2]})
-            validateattributes(x, {'double'}, {'size', [1,4]})
+
+            validateattributes(wp_pos, {'double'}, {'size', [NaN, 2]})
+            validateattributes(x, {'double'}, {'size', [1, 6]})
 
             wp_pos = wp_pos';
-            x = x';
+
+            x_los= [x(4), x(5), x(6), sqrt(x(1)^2+x(2)^2)]; % x_los = [x y psi U]
+            x_los = x_los';
 
             n_wps = length(wp_pos);
             for i = wp_idx:n_wps-1
-                d_0wp_vec = wp_pos(:, i + 1) - x(1:2);
+                d_0wp_vec = wp_pos(:, i + 1) - x_los(1:2);
                 L_wp_segment = wp_pos(:, i + 1) - wp_pos(:, i);
         
                 segment_passed = self.check_for_wp_segment_switch(L_wp_segment, d_0wp_vec);
