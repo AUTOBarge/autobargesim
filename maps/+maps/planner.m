@@ -418,7 +418,7 @@ end
 
             % Set the lookahead distance, which determines the spacing between new path points
             lookahead_distance = 0.001; 
-            
+
             num_samples = floor(total_distance / lookahead_distance);
             uniform_distances = linspace(0, total_distance, num_samples);
 %             xx = spline(cumulative_distances, x, uniform_distances);
