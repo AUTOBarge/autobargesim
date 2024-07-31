@@ -405,30 +405,11 @@ end
         end
         
         function obj = smoothPoints(obj)
-            % This function smooths the path points by performing linear interpolation.
-            % It calculates the distances between consecutive points, computes the 
-            % cumulative distance along the path, and then generates new, evenly spaced 
-            % points based on a specified lookahead distance. The original path points 
-            % are replaced with these new interpolated points.
             x = obj.path_points(:,1); 
             y = obj.path_points(:,2); 
             distances = sqrt(diff(x).^2 + diff(y).^2);
             total_distance = sum(distances);
             cumulative_distances = [0; cumsum(distances)];
-
-            % Set the lookahead distance, which determines the spacing between new path points
-            lookahead_distance = 0.001; 
-            
-            num_samples = floor(total_distance / lookahead_distance);
-            uniform_distances = linspace(0, total_distance, num_samples);
-%             xx = spline(cumulative_distances, x, uniform_distances);
-%             yy = spline(cumulative_distances, y, uniform_distances);
-            xx = interp1(cumulative_distances, x, uniform_distances);
-            yy = interp1(cumulative_distances, y, uniform_distances);
-            obj.path_points = zeros(length(xx), 2);
-            obj.path_points(:,1) = xx;
-            obj.path_points(:,2) = yy;
-        end
 
         function in_polygon = is_point_inside_polygon(obj, given_point)
             in_polygon = isinterior(polyshape(obj.polygon), given_point(1), given_point(2));
