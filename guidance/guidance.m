@@ -66,7 +66,7 @@ classdef guidance
                 segment_passed = self.check_for_wp_segment_switch(L_wp_segment, d_0wp_vec);
                 if segment_passed
                     wp_idx = wp_idx + 1;
-                    fprintf("Segment {%d} passed!\n", i);
+                    %fprintf("Segment {%d} passed!\n", i);
                 else
                     break;
                 end

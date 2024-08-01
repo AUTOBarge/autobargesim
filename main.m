@@ -1,72 +1,66 @@
 function main()
-    clc
-    clear
-    close all
-	fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
-	fprintf('AUTOBargeSim: MATLAB toolbox for the design and analysis of \nthe GNC System for autonomous inland vessels.\n');
-	fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
+clc
+clear
+close all
+fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
+fprintf('AUTOBargeSim: MATLAB toolbox for the design and analysis of \nthe GNC System for autonomous inland vessels.\n');
+fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
 	
-    % Prompt user to provide the directory for shape files
-    usePackageShapeFiles = input('Do you want to use the shape files included in the package? (y/n): ', 's');
+% Prompt user to provide the directory for shape files
+usePackageShapeFiles = input('Do you want to use the maps included in the package? (y/n): ', 's');
     
-    if strcmpi(usePackageShapeFiles, 'y')
-        % Prompt user to choose the area
-        areaChoice = input('Choose the area (1 for Albert canal, 2 for Leuven area): ');
-        switch areaChoice
-            case 1
-                shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Albert canal');
-                 defaultStart = [4.4266966, 51.2383286];  % Default values for Albert canal
-                 defaultEnd = [4.5088209, 51.2361481];   
-            case 2
-                shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Leuven area');
-                defaultStart = [0, 0];  % Default values for Leven area
-                defaultEnd = [0, 0];
-            otherwise
-                error('Invalid choice. Please run the program again and select a valid area.');
-        end
-    else
-        shapeFileDirectory = input('Please provide the full directory path for the shape files: ', 's');
-        defaultStart = [];  % No defaults for custom files
-        defaultEnd = [];    
+if strcmpi(usePackageShapeFiles, 'y')
+    % Prompt user to choose the area
+    areaChoice = input('Choose the area (1 for Albert canal, 2 for Leuven area): ');
+    switch areaChoice
+        case 1
+        shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Albert canal');
+        defaultStart = [4.4266966, 51.2383286];  % Default values for Albert canal
+        defaultEnd = [4.5088209, 51.2361481];   
+        case 2
+        shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Leuven area');
+        defaultStart = [0, 0];  % Default values for Leven area
+        defaultEnd = [0, 0];
+        otherwise
+        error('Invalid choice. Please run the program again and select a valid area.');
+    end
+else
+    shapeFileDirectory = input('Please provide the full directory path for the shape files: ', 's');
+    defaultStart = [];  % No defaults for custom files
+    defaultEnd = [];    
     end
     
-    fprintf('Shape files directory set to: %s\n', shapeFileDirectory);
+fprintf('Shape files directory set to: %s\n', shapeFileDirectory);
     
-    % Create a 'process' class object and plot the area
-    desirename=["depare","bridge","wtwaxs","lndare"];
-    warning('off','MATLAB:polyshape:repairedBySimplify');
-    process = maps.processor(desirename, shapeFileDirectory);
-    process.plot();
+% Create a 'process' class object and plot the area
+desirename=["depare","bridge","wtwaxs","lndare"];
+warning('off','MATLAB:polyshape:repairedBySimplify');
+process = maps.processor(desirename, shapeFileDirectory);
+process.plot();
 
-    % Prompt user to provide start and end points
-    fprintf('Please select the start and end points for the route from the map \n');
-    %start_lat = input('Start point lat coordinate: ');
-    %start_long = input('Start point long coordinate: ');
-    %end_lat = input('End point lat coordinate: ');
-    %end_long = input('End point long coordinate: ');
-    st=drawpoint;
-    en=drawpoint;
-    start_long = st.Position(1);
-    start_lat= st.Position(2);
-    end_long = en.Position(1);
-    end_lat = en.Position(2);
-    % Use defaults if user input is empty
-        if isempty(start_lat) || isempty(start_long) || isempty(end_lat) || isempty(end_long)
-            startPoint = defaultStart;
-            endPoint = defaultEnd;
-        else
-            startPoint = [start_long, start_lat];
-            endPoint = [end_long, end_lat];
-        end
-
-
+% Prompt user to provide start and end points
+fprintf('Please select the start and end points for the route from the map \n');
+st=drawpoint;
+en=drawpoint;
+start_long = st.Position(1);
+start_lat= st.Position(2);
+end_long = en.Position(1);
+end_lat = en.Position(2);
+% Use defaults if user input is empty
+if isempty(start_lat) || isempty(start_long) || isempty(end_lat) || isempty(end_long)
+    startPoint = defaultStart;
+    endPoint = defaultEnd;
+else
+    startPoint = [start_long, start_lat];
+    endPoint = [end_long, end_lat];
+end
+ 
+% Create a 'plan' class object and provide it the start and end points, plot the path
+plan = maps.planner(process.pgon_memory);
+plan = plan.plan_path([startPoint(1), startPoint(2)], [endPoint(1), endPoint(2)]);
+plan.plot_path(1);
     
-	% Create a 'plan' class object and provide it the start and end points, plot the path
-    plan = maps.planner(process.pgon_memory);
-    plan = plan.plan_path([startPoint(1), startPoint(2)], [endPoint(1), endPoint(2)]);
-    plan.plot_path(1);
-    
-    %%
+%%
 wp_wgs84 = plan.path_points;
 wgs84 = wgs84Ellipsoid;
 lon0 = wp_wgs84(1,1);
@@ -96,12 +90,12 @@ chi_d = zeros(1,t_f); %Desired track is stored in chi_d
 
 %Create and initialise model and actuator class objects
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
-env_set = struct("rho_water", 1000, "H_d", 2);
+env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
 prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
 rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
-Vessel = modelClass(ship_dim, env_set);
-SRSP = actuatorClass(ship_dim, env_set, prop_params, rud_params);
-Vessel = Vessel.ship_params_calculator();
+Vessel = modelClass(ship_dim);
+SRSP = actuatorClass(ship_dim, prop_params, rud_params);
+Vessel = Vessel.ship_params_calculator(env_set);
 Vessel.sensor_state = initial_state;
 
 %Create and initialise control class object
@@ -126,7 +120,7 @@ for i=1:t_f
     r = states(3);
     time = (i - 1) * h; % simulation time in seconds
     % Find the active waypoint
-    wp_idx = los.find_active_wp_segment(wp_pos, states, wp_idx);
+    wp_idx = los.find_active_wp_segment(wp_pos, states', wp_idx);
     % Call LOS algorithm
     [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, states', wp_idx,1);
 
@@ -140,10 +134,10 @@ for i=1:t_f
     
     % Provide the vessel with the computed control command
     SRSP = SRSP.act_response(ctrl_last, ctrl_command,h);
-    [J_P, K_T, SRSP] = SRSP.get_prop_force(vel);
-    SRSP = SRSP.get_rud_force(vel, J_P, K_T);
-    SRSP = SRSP.get_act_force();
-    Vessel = Vessel.sensor_dynamic_model(SRSP.tau_act);
+    %[J_P, K_T, SRSP] = SRSP.get_prop_force(vel);
+    %SRSP = SRSP.get_rud_force(vel, J_P, K_T);
+    %SRSP = SRSP.get_act_force();
+    Vessel = Vessel.sensor_dynamic_model(SRSP, env_set);
 
     % Vessle's state update (Euler integration)
     Vessel.sensor_state = Vessel.sensor_state + Vessel.sensor_state_dot * h;

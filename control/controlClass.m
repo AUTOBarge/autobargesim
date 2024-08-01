@@ -115,6 +115,7 @@ classdef controlClass
             opts.ipopt.max_iter = obj.mpc_params.max_iter;
             opts.ipopt.print_level = 0; %0,3
             opts.print_time = 0;
+            opts.verbose = 0;
             opts.ipopt.acceptable_tol = 1e-8; % 1e-8;
             opts.ipopt.acceptable_obj_change_tol = 1e-6;
 
