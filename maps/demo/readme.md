@@ -1,31 +1,53 @@
-# Maps Demo 01
+# Maps test demo
 
 ## Description
-to be added
+The 'maps.processor' class will be used to display the desired area to the user. The 'maps.planner' class will fit a path based on the 'water axis' for the input start and end points within that area, providing the relevant waypoints.
 
 ## Dependencies
 The following toolboxes are required:
-- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html) 
+- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html)
+- [Statistics and Machine Learning Toolbox](https://se.mathworks.com/products/statistics.html)
 
 ## Setup
 Follow the steps below to run this demo:
-- Add ENC_class/ENC.m as your 'run' function.
+- Add +maps as your 'run' class.
 - Replace 'pwd' with the path of the folder where your .shp files are stored.
-``` Matlab
-folder = 'pwd';  % Set the folder path!!!!!!!!!!!!!!!
-files = dir(fullfile(folder, '*.shp'));  % Get information of all .shp files in the folder
-desirename=["depare","bridge","wtwaxs","lndare","notmrk"]; %give the desirename
-```
 - Enter the category you want to extract in the input bar Desirename. The code will classify according to the name of the .shp file, and eventually classify all .shp files of the same category name into one pgon_memory
-> For example, the code will automatically classify the files in the .shp folder with "notmrk" as one category, and store them in the form of points.
+> Note：
+
+> It is recommended not to use Depth areas with multiple layers and unsurveyed areas as 'depare' input (e.g., .7V7ZEEK1, 7V7RUP03), as this will result in unpredictable runtime and unknown errors.
+
+> Please select connected .000 files as input, otherwise the correct route cannot be determined.
 ``` Matlab
-pgon_memory_5 = ENC.shape_multi(desirename,files,folder,desirename(5));
+addpath( 'pwd'); % Set the +maps (namespace) path
+folder = 'pwd';  % Set the folder path for reading .shp files
+desirename=["depare","bridge","wtwaxs","lndare"]; %give the desirename %"notmrk"
 ```
-- Each time, provide any number of category names of the 'S-57 standard' you want to analyze and place them in "desirename". Then apply the function ENC_function.shape_multi in sequence to obtain their file data.
-> Note the consistency between the desirename in your folder and the provided desirename.
-- Select the category you need to plot. For points, lines, and polygons, there are examples of polt.
+- 'maps.processor(desirename, folder)' creates an instance of the 'maps.processor' class with the parameters 'desirename' and 'folder'.
+- 'p.plot()' calls the 'plot' method of the 'maps.processor' instance, which is used to visualize the specified area.
+``` Matlab
+p = maps.processor(desirename, folder);
+p.plot();
+```
+- This line creates an instance of the 'maps.planner' class, named pl. It uses the pgon_memory property of the previously created 'maps.processor' instance (p) as an input parameter. The 'pgon_memory' contains the necessary data about the desire area for the planner to work with.
 ```Matlab
-%%%%polt
+pl = maps.planner(p.pgon_memory);
+```
+- The 'generate_random_points' method of the 'maps.planner' instance (pl) to automatically generate random start and end points for testing purposes.
+```Matlab
+% Defines the given starting and ending points
+% given_point1 = [~, ~];
+% given_point2 = [~, ~];
+[given_point1, given_point2]=pl.generate_random_points(); % generate start(given point 1) and end points(given point 2) for testing
+```
+- This line calls the 'plan_path' method of the 'maps.planner' instance (pl), using the given_point1 and given_point2 as input parameters. The 'plan_path' method computes the best path.
+```Matlab
+pl = pl.plan_path(given_point1, given_point2);
+```
+- This line calls the 'plot_path' method of the 'maps.planner' instance (pl) with the '1'. The argument 1 indicates that the method should plot the full graph with all relevant information, including nodes, edges, waypoints, the start point, the end point, and the best path. 
+```Matlab
+pl.plot_path(1);
 ```
 ## Results
-to be added
+![ENC_graph_part](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/part.png)
+![ENC_graph](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/all.png)

@@ -11,6 +11,7 @@ None
 ## Properties
 
 - ship_dim: Ship dimensions. datatype: structure array.
+- env_set: External environment. datatype: structure array.
 - dyn_model_params: Parameters in the sensor dynamic model. datatype: structure array.
 - ref_model_params: Parameters in the control reference model. datatype: structure array.
 - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
@@ -23,6 +24,7 @@ None
 
 - pramsCalculator:
        -- ship_params_calculator: This function calculates model parameters using empirical formulas based on ship dimensions and environment.
+       -- ship_params_calculator: This function calculates model parameters using empirical formulas based on ship dimensions.
 - Models:
        -- sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvering motion. It is highly accurate and serves as a virtual sensor.
        -- ctrl_reference_model: This function provides reference model for controllers.
