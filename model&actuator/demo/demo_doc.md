@@ -14,6 +14,6 @@ Make sure fill in the settings correctly.
 
 ## Results
 
-demo1 gives plots of straight sailing starting from still; environment setting: water depth: 5m; downstream.
-demo2 gives plots of turning maneuver starting from sailing at service speed; environment setting: water depth: 5m; crosscurrent.
-demo3 gives plots of zigzag maneuver starting from sailing at service speed; environment setting: water depth: 5m; upstream.
+demo1 gives plots of straight sailing starting from still.
+demo2 gives plots of turning maneuver starting from sailing at service speed.
+demo3 gives plots of zigzag maneuver starting from sailing at service speed.
