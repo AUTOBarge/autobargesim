@@ -6,7 +6,6 @@ classdef modelClass
     %
     % Properties:
     %   - ship_dim: Ship dimensions. datatype: structure array.
-    %   - env_set: External environment. datatype: structure array.
     %   - dyn_model_params: Parameters in the sensor dynamic model. datatype: structure array.
     %   - ref_model_params: Parameters in the control reference model. datatype: structure array.
     %   - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
@@ -19,6 +18,7 @@ classdef modelClass
     %       -- ship_params_calculator: This function calculates model parameters using imperical formulas based on ship dimensions.
     %   - Models:
     %       -- sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvring motion. It is highly accurate and serves as a virtual sensor.
+    %       -- ctrl_reference_model: This function provides a reference model for controllers (Fossen form with linear damping).
     %       -- ctrl_reference_model: This function provides reference model for controllers.
     %
     % Author:
@@ -32,7 +32,6 @@ classdef modelClass
 
     properties
         ship_dim
-        env_set
         dyn_model_params
         ref_model_params
         sensor_state
@@ -44,6 +43,10 @@ classdef modelClass
     % Constructor
     methods
 
+        function obj = modelClass(ship_dim)
+            % Initialize the object
+            if nargin > 0
+                obj.ship_dim = ship_dim;
         function obj = modelClass(ship_dim, env_set)
             % Initialize the object
             if nargin > 0
@@ -58,6 +61,16 @@ classdef modelClass
     % pramsCalculator
     methods
 
+        function obj = ship_params_calculator(obj, env_set)
+            %This function calculates model parameters using imperical formulas based on ship dimensions.
+            %
+            %Output Arguments:
+            %- obj.dyn_model_params (structure array): Parameters in the sensor dynamic model.
+            %- obj.ref_model_params (structure array): Parameters in the control reference model.
+
+            %% Load environment setting
+            rho_water = env_set.rho_water; % Water density in kg/m^3
+            H = env_set.H; % Water depth in m
         function obj = ship_params_calculator(obj)
             %This function calculates model parameters using imperical formulas based on ship dimensions.
             %
@@ -98,6 +111,7 @@ classdef modelClass
             Re = u_0 * L / 1.306e-6;
             C_F = 0.075 / (log10(Re) - 2) ^ 2;
             k = -0.07 + 0.487118 * (B / L) ^ 1.06806 * (d / L) ^ 0.46106 * (L / L_R) ^ 0.121563 * (L ^ 3 / disp) ^ 0.36486 * (1 - C_p) ^ (-0.604247);
+            delta_k = 0.644 * H / d ^ (-1.72); %Form factor correction from Millward (1989)
             delta_k = 0.644 * H_d ^ (-1.72); %Form factor correction from Millward (1989)
             C_W = 0.0033;
             C_T = (1 + k + delta_k) * C_F + C_W; % Ct = R/(0.5*rho_water*S*U*2)
@@ -125,6 +139,8 @@ classdef modelClass
             N_vrr_dash = -0.075 * (1 - C_b) * L / B + 0.098;
 
             %% Construct outputs
+            obj.dyn_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'X_vv_dash', X_vv_dash, 'X_rr_dash', X_rr_dash, 'X_vr_dash', X_vr_dash, 'Y_v_dash', Y_v_dash, 'Y_vvv_dash', Y_vvv_dash, 'Y_r_dash', Y_r_dash, 'Y_rrr_dash', Y_rrr_dash, 'Y_vvr_dash', Y_vvr_dash, 'Y_vrr_dash', Y_vrr_dash, 'N_v_dash', N_v_dash, 'N_vvv_dash', N_vvv_dash, 'N_r_dash', N_r_dash, 'N_rrr_dash', N_rrr_dash, 'N_vvr_dash', N_vvr_dash, 'N_vrr_dash', N_vrr_dash);
+            obj.ref_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'Y_v_dash', Y_v_dash, 'Y_r_dash', Y_r_dash, 'N_v_dash', N_v_dash, 'N_r_dash', N_r_dash);
             %dyn_model_names = ['L' 'd' 'rho_water' 'm' 'x_G' 'I_zG' 'm_x' 'm_y' 'J_z' 'R_dash' 'X_vv_dash' 'X_rr_dash' 'X_vr_dash' 'Y_v_dash' 'Y_vvv_dash' 'Y_r_dash' 'Y_rrr_dash' 'Y_vvr_dash' 'Y_vrr_dash' 'N_v_dash' 'N_vvv_dash' 'N_r_dash' 'N_rrr_dash' 'N_vvr_dash' 'N_vrr_dash'];
             %dyn_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash X_vv_dash X_rr_dash X_vr_dash Y_v_dash Y_vvv_dash Y_r_dash Y_rrr_dash Y_vvr_dash Y_vrr_dash N_v_dash N_vvv_dash N_r_dash N_rrr_dash N_vvr_dash N_vrr_dash];
             obj.dyn_model_params = struct('L',L,'d',d,'rho_water',rho_water,'m',m,'x_G',x_G,'I_zG',I_zG,'m_x',m_x,'m_y',m_y,'J_z',J_z,'R_dash',R_dash,'X_vv_dash',X_vv_dash,'X_rr_dash',X_rr_dash,'X_vr_dash',X_rr_dash,'Y_v_dash',Y_v_dash,'Y_vvv_dash',Y_vvv_dash,'Y_r_dash',Y_r_dash,'Y_rrr_dash',Y_rrr_dash,'Y_vvr_dash',Y_vvr_dash,'Y_vrr_dash',Y_vrr_dash,'N_v_dash',N_v_dash,'N_vvv_dash',N_vvv_dash,'N_r_dash',N_r_dash,'N_rrr_dash',N_rrr_dash,'N_vvr_dash',N_vvr_dash,'N_vrr_dash',N_vrr_dash);
@@ -139,11 +155,31 @@ classdef modelClass
     % Models
     methods
 
+        function obj = sensor_dynamic_model(obj, Act, env_set)
         function obj = sensor_dynamic_model(obj, tau_act)
             %This function provides a dynamic model for 3DOF maneuvring motion. It is highly accurate and serves as a virtual sensor.
             %
             %Output Arguments:
             %- sensor_state_dot (list)
+
+            %% Load environment setting
+            V_c = env_set.V_c; % Water density in kg/m^3
+            beta_c = env_set.beta_c; % Water depth in m
+
+            %% Load states
+            u = obj.sensor_state(1); % Surge speed over ground in m/s
+            v = obj.sensor_state(2); % Sway speed over ground in m/s
+            r = obj.sensor_state(3); % Yaw rate in rad/s
+            x = obj.sensor_state(4); % X position in m
+            y = obj.sensor_state(5); % Y position in m
+            psi = obj.sensor_state(6); % Heading in rad
+
+            %% Current effect
+            u_r = u - V_c * cos(beta_c - psi); % Surge speed over water in m/s
+            v_r = v - V_c * sin(beta_c - psi); % Sway speed over water in m/s
+            obj.sensor_vel_relative(1) = u_r;
+            obj.sensor_vel_relative(2) = v_r;
+            obj.sensor_vel_relative(3) = r;
 
             %% Load states
             u = obj.sensor_state(1);
@@ -181,6 +217,16 @@ classdef modelClass
             N_vrr_dash = obj.dyn_model_params.N_vrr_dash;
 
             %% Non-dimensionalize
+            U = sqrt(u_r ^ 2 + v_r ^ 2);
+
+            if U == 0
+                v_dash = 0;
+                r_dash = 0;
+            else
+                v_dash = v_r / U;
+                r_dash = r * L / U;
+            end
+
             U = sqrt(u ^ 2 + v ^ 2);
             v_dash = v / U;
             r_dash = r * L / U;
@@ -197,6 +243,9 @@ classdef modelClass
                  0 x_G * m I_zG + J_z];
 
             %% Coriolis matrix
+            C = [(m + m_y) * v_r * r + m * x_G * r ^ 2
+                 - (m + m_x) * u_r * r
+                 - m * x_G * u_r * r + (m_x - m_y) * u_r * v_r];
             C = [(m + m_y) * v * r + m * x_G * r ^ 2
                  - (m + m_x) * u * r
                  - m * x_G * u * r + (m_x - m_y) * u * v];
