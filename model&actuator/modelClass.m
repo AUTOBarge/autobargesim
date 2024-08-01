@@ -10,7 +10,6 @@ classdef modelClass
     %   - ref_model_params: Parameters in the control reference model. datatype: structure array.
     %   - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
     %   - sensor_state_dot: Output (state_dot) of sensor dynamic model. datatype: array (6, 1).
-    %   - sensor_vel_relative: Relative velocity over ground used in sensor dynamic model. datatype: array (3, 1).
     %   - ref_state: States used in control reference model. datatype: array (6, 1).
     %   - ref_state_dot: Output (state_dot) of control reference model. datatype: array (6, 1).
     %
@@ -20,6 +19,7 @@ classdef modelClass
     %   - Models:
     %       -- sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvring motion. It is highly accurate and serves as a virtual sensor.
     %       -- ctrl_reference_model: This function provides a reference model for controllers (Fossen form with linear damping).
+    %       -- ctrl_reference_model: This function provides reference model for controllers.
     %
     % Author:
     %   Yan-Yun Zhang
@@ -36,7 +36,6 @@ classdef modelClass
         ref_model_params
         sensor_state
         sensor_state_dot
-        sensor_vel_relative
         ref_state
         ref_state_dot
     end
@@ -48,6 +47,11 @@ classdef modelClass
             % Initialize the object
             if nargin > 0
                 obj.ship_dim = ship_dim;
+        function obj = modelClass(ship_dim, env_set)
+            % Initialize the object
+            if nargin > 0
+                obj.ship_dim = ship_dim;
+                obj.env_set = env_set;
             end
 
         end
@@ -67,6 +71,16 @@ classdef modelClass
             %% Load environment setting
             rho_water = env_set.rho_water; % Water density in kg/m^3
             H = env_set.H; % Water depth in m
+        function obj = ship_params_calculator(obj)
+            %This function calculates model parameters using imperical formulas based on ship dimensions.
+            %
+            %Updated Arguments:
+            %- obj.dyn_model_params (dic): Parameters in the sensor dynamic model.
+            %- obj.ref_model_params (dic): Parameters in the control reference model.
+
+            %% Load environment setting
+            rho_water = obj.env_set.rho_water; % Water density in kg/m^3
+            H_d = obj.env_set.H_d; % Ratio of water depth (h) to ship draught
 
             %% Load ship dimensions
             scale = obj.ship_dim.scale; % Scale factor
@@ -98,6 +112,7 @@ classdef modelClass
             C_F = 0.075 / (log10(Re) - 2) ^ 2;
             k = -0.07 + 0.487118 * (B / L) ^ 1.06806 * (d / L) ^ 0.46106 * (L / L_R) ^ 0.121563 * (L ^ 3 / disp) ^ 0.36486 * (1 - C_p) ^ (-0.604247);
             delta_k = 0.644 * H / d ^ (-1.72); %Form factor correction from Millward (1989)
+            delta_k = 0.644 * H_d ^ (-1.72); %Form factor correction from Millward (1989)
             C_W = 0.0033;
             C_T = (1 + k + delta_k) * C_F + C_W; % Ct = R/(0.5*rho_water*S*U*2)
             R_dash = C_T * S / L / d;
@@ -126,6 +141,12 @@ classdef modelClass
             %% Construct outputs
             obj.dyn_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'X_vv_dash', X_vv_dash, 'X_rr_dash', X_rr_dash, 'X_vr_dash', X_vr_dash, 'Y_v_dash', Y_v_dash, 'Y_vvv_dash', Y_vvv_dash, 'Y_r_dash', Y_r_dash, 'Y_rrr_dash', Y_rrr_dash, 'Y_vvr_dash', Y_vvr_dash, 'Y_vrr_dash', Y_vrr_dash, 'N_v_dash', N_v_dash, 'N_vvv_dash', N_vvv_dash, 'N_r_dash', N_r_dash, 'N_rrr_dash', N_rrr_dash, 'N_vvr_dash', N_vvr_dash, 'N_vrr_dash', N_vrr_dash);
             obj.ref_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'Y_v_dash', Y_v_dash, 'Y_r_dash', Y_r_dash, 'N_v_dash', N_v_dash, 'N_r_dash', N_r_dash);
+            %dyn_model_names = ['L' 'd' 'rho_water' 'm' 'x_G' 'I_zG' 'm_x' 'm_y' 'J_z' 'R_dash' 'X_vv_dash' 'X_rr_dash' 'X_vr_dash' 'Y_v_dash' 'Y_vvv_dash' 'Y_r_dash' 'Y_rrr_dash' 'Y_vvr_dash' 'Y_vrr_dash' 'N_v_dash' 'N_vvv_dash' 'N_r_dash' 'N_rrr_dash' 'N_vvr_dash' 'N_vrr_dash'];
+            %dyn_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash X_vv_dash X_rr_dash X_vr_dash Y_v_dash Y_vvv_dash Y_r_dash Y_rrr_dash Y_vvr_dash Y_vrr_dash N_v_dash N_vvv_dash N_r_dash N_rrr_dash N_vvr_dash N_vrr_dash];
+            obj.dyn_model_params = struct('L',L,'d',d,'rho_water',rho_water,'m',m,'x_G',x_G,'I_zG',I_zG,'m_x',m_x,'m_y',m_y,'J_z',J_z,'R_dash',R_dash,'X_vv_dash',X_vv_dash,'X_rr_dash',X_rr_dash,'X_vr_dash',X_rr_dash,'Y_v_dash',Y_v_dash,'Y_vvv_dash',Y_vvv_dash,'Y_r_dash',Y_r_dash,'Y_rrr_dash',Y_rrr_dash,'Y_vvr_dash',Y_vvr_dash,'Y_vrr_dash',Y_vrr_dash,'N_v_dash',N_v_dash,'N_vvv_dash',N_vvv_dash,'N_r_dash',N_r_dash,'N_rrr_dash',N_rrr_dash,'N_vvr_dash',N_vvr_dash,'N_vrr_dash',N_vrr_dash);
+            %ref_model_names = ['L' 'd' 'rho_water' 'm' 'x_G' 'I_zG' 'm_x' 'm_y' 'J_z' 'R_dash' 'Y_v_dash' 'Y_r_dash' 'N_v_dash' 'N_r_dash'];
+            %ref_model_wheels = [L d rho_water m x_G I_zG m_x m_y J_z R_dash Y_v_dash Y_r_dash N_v_dash N_r_dash];
+            obj.ref_model_params = struct('L',L,'d',d,'rho_water',rho_water,'m',m,'x_G',x_G,'I_zG',I_zG,'m_x',m_x,'m_y',m_y,'J_z',J_z,'R_dash',R_dash,'Y_v_dash',Y_v_dash,'Y_r_dash',Y_r_dash,'N_v_dash',N_v_dash,'N_r_dash',N_r_dash);
 
         end
 
@@ -135,6 +156,7 @@ classdef modelClass
     methods
 
         function obj = sensor_dynamic_model(obj, Act, env_set)
+        function obj = sensor_dynamic_model(obj, tau_act)
             %This function provides a dynamic model for 3DOF maneuvring motion. It is highly accurate and serves as a virtual sensor.
             %
             %Output Arguments:
@@ -158,6 +180,14 @@ classdef modelClass
             obj.sensor_vel_relative(1) = u_r;
             obj.sensor_vel_relative(2) = v_r;
             obj.sensor_vel_relative(3) = r;
+
+            %% Load states
+            u = obj.sensor_state(1);
+            v = obj.sensor_state(2);
+            r = obj.sensor_state(3); %rad/s
+            x = obj.sensor_state(4);
+            y = obj.sensor_state(5);
+            psi = obj.sensor_state(6);
 
             %% Load model parameters
             L = obj.dyn_model_params.L;
@@ -197,6 +227,13 @@ classdef modelClass
                 r_dash = r * L / U;
             end
 
+            U = sqrt(u ^ 2 + v ^ 2);
+            v_dash = v / U;
+            r_dash = r * L / U;
+            if U == 0
+                v_dash = 0;
+                r_dash = 0;
+            end
             F_cal = 0.5 * rho_water * L * d * U ^ 2;
             N_cal = 0.5 * rho_water * L ^ 2 * d * U ^ 2;
 
@@ -209,6 +246,9 @@ classdef modelClass
             C = [(m + m_y) * v_r * r + m * x_G * r ^ 2
                  - (m + m_x) * u_r * r
                  - m * x_G * u_r * r + (m_x - m_y) * u_r * v_r];
+            C = [(m + m_y) * v * r + m * x_G * r ^ 2
+                 - (m + m_x) * u * r
+                 - m * x_G * u * r + (m_x - m_y) * u * v];
 
             %% Damping matrix
             D = [
@@ -216,12 +256,6 @@ classdef modelClass
                  F_cal * (Y_v_dash * v_dash + Y_r_dash * r_dash + Y_vvv_dash * v_dash ^ 3 + Y_vvr_dash * v_dash ^ 2 * r_dash + Y_vrr_dash * v_dash * r_dash ^ 2 + Y_rrr_dash * r_dash ^ 3)
                  N_cal * (N_v_dash * v_dash + N_r_dash * r_dash + N_vvv_dash * v_dash ^ 3 + N_vvr_dash * v_dash ^ 2 * r_dash + N_vrr_dash * v_dash * r_dash ^ 2 + N_rrr_dash * r_dash ^ 3)
                  ];
-
-            %% Actuation force
-            [J_P, K_T, Act] = Act.get_prop_force(env_set, obj.sensor_vel_relative);
-            Act = Act.get_rud_force(env_set, obj.sensor_vel_relative, J_P, K_T);
-            Act = Act.get_act_force();
-            tau_act = Act.tau_act;
 
             %%
             vel_dot = M \ (tau_act + D + C);
@@ -267,12 +301,10 @@ classdef modelClass
             U = sqrt(u ^ 2 + v ^ 2);
             v_dash = v / U;
             r_dash = r * L / U;
-
             if U == 0
                 v_dash = 0;
                 r_dash = 0;
             end
-
             F_cal = 0.5 * rho_water * L * d * U ^ 2;
             N_cal = 0.5 * rho_water * L ^ 2 * d * U ^ 2;
 
