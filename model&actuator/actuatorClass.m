@@ -45,11 +45,18 @@ classdef actuatorClass
     % Constructor
     methods
 
+
+        function obj = actuatorClass(ship_dim, prop_params, rud_params)
+            % Initialize the object
+            if nargin > 0
+                obj.ship_dim = ship_dim;
+
         function obj = actuatorClass(ship_dim, env_set, prop_params, rud_params)
             % Initialize the object
             if nargin > 0
                 obj.ship_dim = ship_dim;
                 obj.env_set = env_set;
+
                 obj.prop_params = prop_params;
                 obj.rud_params = rud_params;
             end
@@ -108,6 +115,7 @@ classdef actuatorClass
     % forceModels
     methods
 
+        function [J_P, K_T, obj] = get_prop_force(obj, env_set, vel)
         function [J_P, K_T, obj] = get_prop_force(obj, vel)
             %This function provides a propeller force model.
             %Output Arguments:
@@ -125,6 +133,7 @@ classdef actuatorClass
             k_0 = obj.prop_params.k_0;
             k_1 = obj.prop_params.k_1;
             k_2 = obj.prop_params.k_2;
+            rho_water = env_set.rho_water; % Water density in kg/m^3
             rho_water = obj.env_set.rho_water; % Water density in kg/m^3
 
             %% Propeller force model
@@ -161,6 +170,7 @@ classdef actuatorClass
 
         end
 
+        function obj = get_rud_force(obj, env_set, vel, J_P, K_T)
         function obj = get_rud_force(obj, vel, J_P, K_T)
             %This function provides a rudder force model.
             %Output Arguments:
@@ -181,6 +191,7 @@ classdef actuatorClass
             kappa = obj.rud_params.kappa; % An experimental constant for expressing u_R
             x_R_dash = obj.rud_params.x_R_dash; % Longitudinal coordinate of rudder position
             x_H_dash = obj.rud_params.x_H_dash; % Longitudinal coordinate of acting point of the additional lateral force
+            rho_water = env_set.rho_water; % Water density in kg/m^3
             rho_water = obj.env_set.rho_water; % Water density in kg/m^3
 
             %% Ruddr force model
