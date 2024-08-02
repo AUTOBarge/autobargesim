@@ -36,13 +36,13 @@ classdef processor
                 obj.folder = folder;
                 obj.files = dir(fullfile(folder, '*.shp'));
                 
-                % check mat file
+                % 检查是否存在 mat 文件
                 matFilePath = fullfile(folder, 'processed_data.mat');
                 if isfile(matFilePath)
-                    % load
+                    % 加载 mat 文件
                     loadedData = load(matFilePath);
                     
-                    % consistency
+                    % 检查 mat 文件中的文件名、文件夹路径和desirename与当前是否一致
                     matFileNames = {loadedData.files.name};
                     currentFileNames = {obj.files.name};
                     if isequal(sort(matFileNames), sort(currentFileNames)) && ...
@@ -52,6 +52,7 @@ classdef processor
                         disp('Loaded data from existing mat file.');
                     else
                         obj.pgon_memory = obj.set(desirename, obj.files, folder);
+                        % 保存处理结果到 mat 文件
                         files = obj.files;
                         pgon_memory = obj.pgon_memory;
                         save(matFilePath, 'pgon_memory', 'files', 'folder', 'desirename');
@@ -59,7 +60,7 @@ classdef processor
                     end
                 else
                     obj.pgon_memory = obj.set(desirename, obj.files, folder);
-                 
+                    % 保存处理结果到 mat 文件
                     files = obj.files;
                     pgon_memory = obj.pgon_memory;
                     save(matFilePath, 'pgon_memory', 'files', 'folder', 'desirename');
@@ -197,6 +198,7 @@ classdef processor
                         pgon_pl = plot(geom.polygons, 'FaceColor', colorMap(category));
                     end
                 else
+                    % 默认颜色
                     pgon_pl = plot(geom.polygons);
                 end
             end

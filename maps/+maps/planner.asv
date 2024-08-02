@@ -138,20 +138,20 @@ classdef planner
                 error('Invalid input number. Please choose 1 or 2.');
             end
 %              Scale to the area between the red and green dots
-            x_min = min(obj.given_point1(1), obj.given_point2(1)) - 0.01;
-            x_max = max(obj.given_point1(1), obj.given_point2(1)) + 0.01;
-            y_min = min(obj.given_point1(2), obj.given_point2(2)) - 0.01;
-            y_max = max(obj.given_point1(2), obj.given_point2(2)) + 0.01;
-            xlim([x_min x_max]);
-            ylim([y_min y_max]);
-%             Scale from the starting point
-%             vector = obj.given_point2 - obj.given_point1;
-%             x_min = obj.given_point1(1) -0.015;
-%             x_max = obj.given_point1(1) + 0.015;  
-%             y_min = obj.given_point1(2) -0.015;
-%             y_max = obj.given_point1(2) + 0.015;  
+%             x_min = min(obj.given_point1(1), obj.given_point2(1)) - 0.01;
+%             x_max = max(obj.given_point1(1), obj.given_point2(1)) + 0.01;
+%             y_min = min(obj.given_point1(2), obj.given_point2(2)) - 0.01;
+%             y_max = max(obj.given_point1(2), obj.given_point2(2)) + 0.01;
 %             xlim([x_min x_max]);
 %             ylim([y_min y_max]);
+%             Scale from the starting point
+            vector = obj.given_point2 - obj.given_point1;
+            x_min = obj.given_point1(1) -0.01;
+            x_max = obj.given_point1(1) + 0.01;  
+            y_min = obj.given_point1(2) -0.01;
+            y_max = obj.given_point1(2) + 0.01;  
+            xlim([x_min x_max]);
+            ylim([y_min y_max]);
             hold off;
         end
 
