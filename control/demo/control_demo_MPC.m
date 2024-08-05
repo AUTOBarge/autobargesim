@@ -13,7 +13,7 @@ h = 0.2; % sample time (sec)
 
 %% new values for model
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
-env_set = struct("rho_water", 1000, "H_d", 2);
+env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", pi);
 prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
 rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
 
@@ -21,9 +21,9 @@ initial_state = [1 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
 initial_ctrl = [200; 0]; % Initial control
 
 %% Initialization
-Vessel = modelClass(ship_dim, env_set);
-SRSP = actuatorClass(ship_dim, env_set, prop_params, rud_params);
-Vessel = Vessel.ship_params_calculator();
+Vessel = modelClass(ship_dim);
+SRSP = actuatorClass(ship_dim, prop_params, rud_params);
+Vessel = Vessel.ship_params_calculator(env_set);
 Vessel.sensor_state = initial_state;
 ctrl_last = initial_ctrl;
 
@@ -53,17 +53,14 @@ for i=1:N+1
     states = vertcat(Vessel.sensor_state, ctrl_last);
     vel = states(1:3);
 
-    % 
     [ctrl_command_MPC, next_guess,~] = MPCobj.LowLevelMPCCtrl(states, psi_d, r_d, args, next_guess, mpc_nlp);
-    % 
     
-
     ctrl_command = [n_c ; ctrl_command_MPC];
     SRSP = SRSP.act_response(ctrl_last, ctrl_command, h);
-    [J_P, K_T, SRSP] = SRSP.get_prop_force(vel);
-    SRSP = SRSP.get_rud_force(vel, J_P, K_T);
+    [J_P, K_T, SRSP] = SRSP.get_prop_force(env_set, vel);
+    SRSP = SRSP.get_rud_force(env_set, vel, J_P, K_T);
     SRSP = SRSP.get_act_force();
-    Vessel = Vessel.sensor_dynamic_model(SRSP.tau_act);
+    Vessel = Vessel.sensor_dynamic_model(SRSP,env_set);
 
     % Euler integration
     Vessel.sensor_state = Vessel.sensor_state + Vessel.sensor_state_dot * h;
