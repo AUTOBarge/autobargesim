@@ -101,15 +101,20 @@ Vessel.sensor_state = initial_state;
 %Create and initialise control class object
 initial_ctrl = [200;0]; % Initial control
 ctrl_last = initial_ctrl;
+xtetot = 0;
+psi_er_tot = 0;
 pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
 mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
 %Flag_cont = 0; %0 for PID, 1 for MPC
-Flag_cont = input('Select the controller (Type 0 for PID or 1 for MPC): ');    
-control=controlClass(pid_params,mpc_params,Flag_cont);
+Flag_cont = input('Select the controller (Type 0 for PID Controller or 1 for MPC Controller): ');    
+
 if Flag_cont == 1
+    control=controlClass(Flag_cont,mpc_params);
     mpc_nlp = control.init_mpc();
     args = control.constraintcreator();
     next_guess = control.initial_guess_creator(vertcat(Vessel.sensor_state(3),Vessel.sensor_state(6)), ctrl_last);
+else
+    control=controlClass(Flag_cont,pid_params);
 end
 
 % Start the loop for simulation
@@ -142,12 +147,18 @@ for i=1:t_f
     % Vessle's state update (Euler integration)
     Vessel.sensor_state = Vessel.sensor_state + Vessel.sensor_state_dot * h;
     
+    % Calculate the performance indices
+    [xte,psi_er,xtetot,psi_er_tot,control] = control.XTECalc(Vessel.sensor_state, chi, wp_pos, wp_idx, xtetot, psi_er_tot);
+    
     % Update control action
     ctrl_last = SRSP.ctrl_actual';
 
     % store data for presentation
     xout(i, :) = [time, Vessel.sensor_state', SRSP.ctrl_actual, Vessel.sensor_state_dot(1:3)'];
     chi_d(i)=chi;
+    
+    % store the performance indices
+    pout(i,:) = [xte,psi_er,xtetot,psi_er_tot];
 
     %End condition
     
@@ -167,6 +178,11 @@ u_dot = xout(:, 10);
 v_dot = xout(:, 11);
 r_dot = xout(:, 12) * 180 / pi;
 
+xte = pout(:,1);
+psi_er = pout(:,2) * 180 / pi;
+xtetot = pout(:,3);
+psi_er_tot = pout(:,4) * 180 / pi;
+
 %% Plots
 figure(2)
 plot(wp_pos(:,1)/ 38.5,wp_pos(:,2)/ 38.5,'-*r',LineWidth=1.5)
@@ -183,4 +199,9 @@ subplot(324),plot(t,psi,'r'),xlabel('time (s)'),title('yaw angle \psi (deg)'),gr
 subplot(325),plot(t,delta,'r'),xlabel('time (s)'),title('rudder angle \delta (deg)'),grid 
 subplot(326),plot(t,n,'r'),xlabel('time (s)'),title('rpm'),grid
 
+figure(4)
+subplot(211),plot(t,xte),xlabel('time (s)'),title('Cross-track error (m)'),grid
+subplot(212),plot(t,psi_er),xlabel('time (s)'),title('Heading error (deg)'),grid
+fprintf('Total accumulated cross-track error:%d \n',xtetot(end));
+fprintf('Total accumulated heading error:%d \n',psi_er_tot(end));
 end
