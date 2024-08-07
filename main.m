@@ -11,7 +11,7 @@ usePackageShapeFiles = input('Do you want to use the maps included in the packag
     
 if strcmpi(usePackageShapeFiles, 'y')
     % Prompt user to choose the area
-    areaChoice = input('Choose the area (1 for Albert canal, 2 for Leuven area): ');
+    areaChoice = input('Choose the area\n 1 for Albert canal or,\n 2 for Leuven area: ');
     switch areaChoice
         case 1
         shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Albert canal');
@@ -106,7 +106,7 @@ psi_er_tot = 0;
 pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
 mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
 %Flag_cont = 0; %0 for PID, 1 for MPC
-Flag_cont = input('Select the controller (Type 0 for PID Controller or 1 for MPC Controller): ');    
+Flag_cont = input('Select the controller\n Type 0 for PID Controller or, \n 1 for MPC Controller: ');    
 
 if Flag_cont == 1
     control=controlClass(Flag_cont,mpc_params);
@@ -184,13 +184,50 @@ xtetot = pout(:,3);
 psi_er_tot = pout(:,4) * 180 / pi;
 
 %% Plots
-figure(2)
-plot(wp_pos(:,1)/ 38.5,wp_pos(:,2)/ 38.5,'-*r',LineWidth=1.5)
-hold on
-plot(x / 38.5, y / 38.5, '-b',LineWidth=1.5)
-grid, axis('equal'), xlabel('East (y/L)'), ylabel('North (x/L)'), title('Ship position')
+f2=figure(2);
+movegui(f2,'northwest');
+% Stop button: stops the loop and closes the window
 
-figure(3)
+uicontrol('Style', 'pushbutton', 'String', 'Stop', ...
+              'Position', [20 20 60 20], ...
+              'Callback', @(src, event) stopAndClose(f2));
+set(f2, 'UserData', true);
+
+plot(wp_pos(:,2),wp_pos(:,1),'-*r',LineWidth=1.5)
+hold on
+plot(y, x, '-b',LineWidth=1.5)
+grid, axis('equal'), xlabel('East (y)'), ylabel('North (x)'), title('Ship position')
+L=38.5;%ship_length
+B=5.05;%ship_width
+tr=2;
+
+ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2]*[cosd(psi(1)), -sind(psi(1)); sind(psi(1)), cosd(psi(1))]';
+ship_nose = [-L/2, -B/2;-L/2 - tr, 0; -L/2, B/2]*[cosd(psi(1)), -sind(psi(1)); sind(psi(1)), cosd(psi(1))]';
+ship_body_plot = fill(ship_body(:,1), ship_body(:,2), 'g');
+ship_nose_plot = fill(ship_nose(:,1), ship_nose(:,2), 'y');
+
+transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), -sind(angle); sind(angle), cosd(angle)]') + [y, x];
+
+for k=2:length(x)-1
+    % If the figure has been closed manually
+    if ~ishandle(f2)
+        break;
+    end
+    transformed_body = transform_vertices(ship_body, psi(k), x(k), y(k));
+    transformed_nose = transform_vertices(ship_nose, psi(k), x(k), y(k));
+    % Update the ship's position
+    set(ship_body_plot,'Vertices',transformed_body);
+    set(ship_nose_plot,'Vertices',transformed_nose);
+    pause(0.01);
+    
+    % If the Stop button is pressed
+    if ~get(f2, 'UserData')
+        break;  
+    end
+end
+
+f3=figure(3);
+movegui(f3,'northeast');
 subplot(321),plot(t,u,'r'),xlabel('time (s)'),title('u (m/s)'),grid
 hold on;
 subplot(322),plot(t,v,'r'),xlabel('time (s)'),title('v (m/s)'),grid
@@ -199,9 +236,15 @@ subplot(324),plot(t,psi,'r'),xlabel('time (s)'),title('yaw angle \psi (deg)'),gr
 subplot(325),plot(t,delta,'r'),xlabel('time (s)'),title('rudder angle \delta (deg)'),grid 
 subplot(326),plot(t,n,'r'),xlabel('time (s)'),title('rpm'),grid
 
-figure(4)
+f4=figure(4);
+movegui(f4,'southeast');
 subplot(211),plot(t,xte),xlabel('time (s)'),title('Cross-track error (m)'),grid
 subplot(212),plot(t,psi_er),xlabel('time (s)'),title('Heading error (deg)'),grid
 fprintf('Total accumulated cross-track error:%d \n',xtetot(end));
 fprintf('Total accumulated heading error:%d \n',psi_er_tot(end));
+end
+
+function stopAndClose(figHandle)
+        set(figHandle, 'UserData', false);
+        %close(figHandle);
 end
