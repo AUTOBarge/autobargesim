@@ -65,13 +65,13 @@ classdef planner
                 disp(['Starting point: ', num2str(given_point1)]);
                 disp(['Ending point: ', num2str(given_point2)]);
             else
+                disp('The points are set outside the boundary, please reset.');
                 if ~in_polygon1
                 disp(['Starting point is outside the boundary: ', num2str(given_point1)]);
                 end
                 if ~in_polygon2
                 disp(['Ending point is outside the boundary: ', num2str(given_point2)]);
                 end
-                disp('The points are set outside the boundary.\nThe simulation will proceed with default values.');
             end
 
 
@@ -137,7 +137,21 @@ classdef planner
             otherwise
                 error('Invalid input number. Please choose 1 or 2.');
             end
-
+%              Scale to the area between the red and green dots
+%             x_min = min(obj.given_point1(1), obj.given_point2(1)) - 0.01;
+%             x_max = max(obj.given_point1(1), obj.given_point2(1)) + 0.01;
+%             y_min = min(obj.given_point1(2), obj.given_point2(2)) - 0.01;
+%             y_max = max(obj.given_point1(2), obj.given_point2(2)) + 0.01;
+%             xlim([x_min x_max]);
+%             ylim([y_min y_max]);
+%             Scale from the starting point
+            vector = obj.given_point2 - obj.given_point1;
+            x_min = obj.given_point1(1) -0.015;
+            x_max = obj.given_point1(1) + 0.015;  
+            y_min = obj.given_point1(2) -0.015;
+            y_max = obj.given_point1(2) + 0.015;  
+            xlim([x_min x_max]);
+            ylim([y_min y_max]);
             hold off;
         end
 
@@ -391,6 +405,7 @@ end
             end
             obj.path_points = [obj.path_points; end_path];
             obj = obj.removeDuplicatePoints();
+            obj = obj.smoothPoints();
 
         end
         
@@ -401,6 +416,32 @@ end
             [~, unique_indices] = unique(obj.path_points, 'rows', 'stable');
             
             obj.path_points = obj.path_points(unique_indices, :);
+        end
+        
+        function obj = smoothPoints(obj)
+            % This function smooths the path points by performing linear interpolation.
+            % It calculates the distances between consecutive points, computes the 
+            % cumulative distance along the path, and then generates new, evenly spaced 
+            % points based on a specified lookahead distance. The original path points 
+            % are replaced with these new interpolated points.
+            x = obj.path_points(:,1); 
+            y = obj.path_points(:,2); 
+            distances = sqrt(diff(x).^2 + diff(y).^2);
+            total_distance = sum(distances);
+            cumulative_distances = [0; cumsum(distances)];
+
+            % Set the lookahead distance, which determines the spacing between new path points
+            lookahead_distance = 0.001; 
+
+            num_samples = floor(total_distance / lookahead_distance);
+            uniform_distances = linspace(0, total_distance, num_samples);
+%             xx = spline(cumulative_distances, x, uniform_distances);
+%             yy = spline(cumulative_distances, y, uniform_distances);
+            xx = interp1(cumulative_distances, x, uniform_distances);
+            yy = interp1(cumulative_distances, y, uniform_distances);
+            obj.path_points = zeros(length(xx), 2);
+            obj.path_points(:,1) = xx;
+            obj.path_points(:,2) = yy;
         end
 
         function in_polygon = is_point_inside_polygon(obj, given_point)
