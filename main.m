@@ -31,21 +31,29 @@ else
 end
     
 fprintf('Shape files directory set to: %s\n', shapeFileDirectory);
-    
+
 % Create a 'process' class object and plot the area
 desirename=["depare","bridge","wtwaxs","lndare"];
 warning('off','MATLAB:polyshape:repairedBySimplify');
 process = maps.processor(desirename, shapeFileDirectory);
 process.plot();
 
+%% Initialisation
+t_f = 8000; % final simulation time (sec)
+h = 0.2; % sample time (sec)
+
+%% Vessel 1
+vessel1 = [];
+
 % Prompt user to provide start and end points
-fprintf('Please select the start and end points for the route from the map \n');
+fprintf('Please select the start and end points for the route of the ownship from the map \n');
 st=drawpoint;
 en=drawpoint;
 start_long = st.Position(1);
 start_lat= st.Position(2);
 end_long = en.Position(1);
 end_lat = en.Position(2);
+
 % Use defaults if user input is empty
 if isempty(start_lat) || isempty(start_long) || isempty(end_lat) || isempty(end_long)
     startPoint = defaultStart;
@@ -54,13 +62,13 @@ else
     startPoint = [start_long, start_lat];
     endPoint = [end_long, end_lat];
 end
- 
+
 % Create a 'plan' class object and provide it the start and end points, plot the path
 plan = maps.planner(process.pgon_memory);
 plan = plan.plan_path([startPoint(1), startPoint(2)], [endPoint(1), endPoint(2)]);
 plan.plot_path(1);
-    
-%%
+
+%
 wp_wgs84 = plan.path_points;
 wgs84 = wgs84Ellipsoid;
 lon0 = wp_wgs84(1,1);
@@ -71,13 +79,6 @@ for i =1:length(wp_wgs84)
     [xEast,yNorth,zUp] = geodetic2enu(wp_wgs84(i,2),wp_wgs84(i,1),height,lat0,lon0,height,wgs84);
     wp_pos(i,:) = [xEast,yNorth];
 end
-
-
-%Initialisation
-t_f = 8000; % final simulation time (sec)
-h = 0.2; % sample time (sec)
-
-vessel1 = [];
 
 % Create and initialise guidance class object
 vessel1.guidance = LOSguidance();
@@ -112,54 +113,162 @@ if Flag_cont == 1
     vessel1.control.param.next_guess = vessel1.control.model.initial_guess_creator(vertcat(vessel1.model.sensor_state(3), vessel1.model.sensor_state(6)), vessel1.control.output);
 end
 
-% Start the loop for simulation
-for i = 1:t_f
-    vel = vessel1.model.sensor_state(1:3);
-    psi = vessel1.model.sensor_state(6);
-    r = vessel1.model.sensor_state(3);
-    time = (i - 1) * h; % simulation time in seconds
 
-    % Find the active waypoint
-    vessel1.wp.idx = vessel1.guidance.find_active_wp_segment(vessel1.wp.pos, vessel1.model.sensor_state', vessel1.wp.idx);
+add_ts_vessel = input('Do you want to add a target vessel? (y/n): ', 's');
+if strcmpi(add_ts_vessel, 'y')
+    % Initialize colision avoidance
+    vessel1.colav.alg = sbmpc(10, h);
+    vessel1.colav.param = [1; 0]; % chi_m, U_m
+end
 
-    % Call LOS algorithm
-    [chi, U] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, vessel1.model.sensor_state', vessel1.wp.idx, 1);
+%% Vessel 2
+vessel2 = [];
 
-    if Flag_cont == 1 % Implement the MPC controller
-        r_d = chi - psi;
-        [ctrl_command_MPC, vessel1.control.param.next_guess, vessel1.control.model] = vessel1.control.model.LowLevelMPCCtrl(vertcat(vessel1.model.sensor_state, vessel1.control.output), chi, r_d, vessel1.control.param.args, vessel1.control.param.next_guess, vessel1.control.param.mpc_nlp);
-        ctrl_command = [340; ctrl_command_MPC];
-    else % Implement the PID controller
-        [ctrl_command, vessel1.control.model] = vessel1.control.model.LowLevelPIDCtrl(chi, r, psi, h);
+% Prompt user to provide start and end points
+if strcmpi(add_ts_vessel, 'y')
+    fprintf('Please select the start and end points for the route of the targetship from the map \n');
+    st=drawpoint;
+    en=drawpoint;
+    start_long = st.Position(1);
+    start_lat= st.Position(2);
+    end_long = en.Position(1);
+    end_lat = en.Position(2);
+    
+    % Use defaults if user input is empty
+    if isempty(start_lat) || isempty(start_long) || isempty(end_lat) || isempty(end_long)
+        startPoint = defaultStart;
+        endPoint = defaultEnd;
+    else
+        startPoint = [start_long, start_lat];
+        endPoint = [end_long, end_lat];
     end
     
-    % Provide the vessel with the computed control command
-    vessel1.actuators = vessel1.actuators.act_response(vessel1.control.output, ctrl_command, h);
-    vessel1.model = vessel1.model.sensor_dynamic_model(vessel1.actuators, env_set);
-
-    % Vessle's state update (Euler integration)
-    vessel1.model.sensor_state = vessel1.model.sensor_state + vessel1.model.sensor_state_dot * h;
+    % Create a 'plan' class object and provide it the start and end points, plot the path
+    plan = maps.planner(process.pgon_memory);
+    plan = plan.plan_path([startPoint(1), startPoint(2)], [endPoint(1), endPoint(2)]);
+    plan.plot_path(1);
     
-    % Update control action
-    vessel1.control.output = vessel1.actuators.ctrl_actual';
+    %
+    wp_wgs84 = plan.path_points;
+    wgs84 = wgs84Ellipsoid;
+    lon0 = wp_wgs84(1,1);
+    lat0 = wp_wgs84(1,2);
+    wp_pos = zeros(length(wp_wgs84),2);
+    height = 0;
+    for i =1:length(wp_wgs84)
+        [xEast,yNorth,zUp] = geodetic2enu(wp_wgs84(i,2),wp_wgs84(i,1),height,lat0,lon0,height,wgs84);
+        wp_pos(i,:) = [xEast,yNorth];
+    end
+    
+    % Create and initialise guidance class object
+    vessel2.guidance = LOSguidance();
+    vessel2.wp.pos = wp_pos;
+    vessel2.wp.speed = 100*ones(length(wp_pos),1);
+    vessel2.wp.idx = 1;
+    [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1);
+    initial_state = [0 0 0 0 0 chi]'; % Initial state [u v r x y psi] in column
+    
+    % Create and initialise model class objects
+    ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
+    env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
+    vessel2.model = modelClass(ship_dim);
+    vessel2.model = vessel2.model.ship_params_calculator(env_set);
+    vessel2.model.sensor_state = initial_state;
+    
+    % Create and initialise actuator class objects
+    prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
+    rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
+    vessel2.actuators = actuatorClass(ship_dim, prop_params, rud_params);
+    
+    % Create and initialise control class object
+    pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
+    mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
+    % Flag_cont = input('Select the controller (Type 0 for PID or 1 for MPC): '); 
+    vessel2.control.model = controlClass(pid_params, mpc_params, Flag_cont);
+    vessel2.control.output = [200; 0]; % Initial control
+    vessel2.control.param = [];
+    if Flag_cont == 1
+        vessel2.control.param.mpc_nlp = vessel2.control.model.init_mpc();
+        vessel2.control.param.args = vessel2.control.model.constraintcreator();
+        vessel2.control.param.next_guess = vessel2.control.model.initial_guess_creator(vertcat(vessel2.model.sensor_state(3), vessel2.model.sensor_state(6)), vessel2.control.output);
+    end
 
-    % store data for presentation
-    xout(i, :) = [time, vessel1.model.sensor_state', vessel1.actuators.ctrl_actual, vessel1.model.sensor_state_dot(1:3)'];
+    % Initialize colision avoidance
+    vessel2.colav.alg = sbmpc(10, h);
+    vessel2.colav.param = [1; 0]; % chi_m, U_m
+end
+
+vessels = [vessel1; vessel2];
+
+%% Start the loop for simulation
+for i = 1:t_f
+    vessels_hold = vessels;
+    for j = 1:numel(vessels_hold)
+        os = vessels_hold(j);
+        ts = vessels_hold(setxor(1:numel(vessels_hold), j));
+
+        ts_sensor_states = [];
+        for v = 1:numel(ts)
+            ts_sensor_states(v, :) = ts(v).model.sensor_state;
+        end
+        ts_sensor_states = reshape(ts_sensor_states, numel(ts), []);
+
+        vel = os.model.sensor_state(1:3);
+        psi = os.model.sensor_state(6);
+        r = os.model.sensor_state(3);
+        time = (i - 1) * h; % simulation time in seconds
+    
+        % Find the active waypoint
+        os.wp.idx = os.guidance.find_active_wp_segment(os.wp.pos, os.model.sensor_state', os.wp.idx);
+    
+        % Call LOS algorithm
+        [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1);
+        
+        [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
+                                                                                           chi, U, ...
+                                                                                           os.colav.param(1), ...
+                                                                                           os.colav.param(2), ...
+                                                                                           ts_sensor_states);
+    
+        if Flag_cont == 1 % Implement the MPC controller
+            r_d = chi - psi;
+            [ctrl_command_MPC, os.control.param.next_guess, os.control.model] = os.control.model.LowLevelMPCCtrl(vertcat(os.model.sensor_state, os.control.output), chi, r_d, os.control.param.args, os.control.param.next_guess, os.control.param.mpc_nlp);
+            ctrl_command = [340; ctrl_command_MPC];
+        else % Implement the PID controller
+            [ctrl_command, os.control.model] = os.control.model.LowLevelPIDCtrl(chi, r, psi, h);
+        end
+        
+        % Provide the vessel with the computed control command
+        os.actuators = os.actuators.act_response(os.control.output, ctrl_command, h);
+        os.model = os.model.sensor_dynamic_model(os.actuators, env_set);
+    
+        % Vessle's state update (Euler integration)
+        os.model.sensor_state = os.model.sensor_state + os.model.sensor_state_dot * h;
+        
+        % Update control action
+        os.control.output = os.actuators.ctrl_actual';
+    
+        % store data for presentation
+        xout(j, i, :) = [time, os.model.sensor_state', os.actuators.ctrl_actual, os.model.sensor_state_dot(1:3)'];
+
+        vessels_hold(j) = os;
+    end
+    vessels = vessels_hold;
 end
 
 % time-series
-t = xout(:, 1);
-u = xout(:, 2);
-v = xout(:, 3);
-r = xout(:, 4) * 180 / pi;
-x = xout(:, 5);
-y = xout(:, 6);
-psi = xout(:, 7) * 180 / pi;
-n = xout(:, 8);
-delta = xout(:, 9);
-u_dot = xout(:, 10);
-v_dot = xout(:, 11);
-r_dot = xout(:, 12) * 180 / pi;
+t = xout(1, :, 1);
+u = xout(1, :, 2);
+v = xout(1, :, 3);
+r = xout(1, :, 4) * 180 / pi;
+x = xout(1, :, 5);
+y = xout(1, :, 6);
+psi = xout(1, :, 7) * 180 / pi;
+n = xout(1, :, 8);
+delta = xout(1, :, 9);
+u_dot = xout(1, :, 10);
+v_dot = xout(1, :, 11);
+r_dot = xout(1, :, 12) * 180 / pi;
 
 %% Plots
 figure(2)
