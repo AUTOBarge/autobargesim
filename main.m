@@ -86,7 +86,7 @@ vessel1.wp.pos = wp_pos;
 vessel1.wp.speed = 100*ones(length(wp_pos),1);
 vessel1.wp.idx = 1;
 [chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, [0 0 0 0 0 0], vessel1.wp.idx, 1);
-initial_state = [0 0 0 0 0 chi]'; % Initial state [u v r x y psi] in column
+initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
 
 % Create and initialise model class objects
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
@@ -166,7 +166,7 @@ if strcmpi(add_ts_vessel, 'y')
     vessel2.wp.speed = 100*ones(length(wp_pos),1);
     vessel2.wp.idx = 1;
     [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1);
-    initial_state = [0 0 0 0 0 chi]'; % Initial state [u v r x y psi] in column
+    initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
     
     % Create and initialise model class objects
     ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
