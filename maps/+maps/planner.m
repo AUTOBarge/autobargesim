@@ -518,9 +518,9 @@ end
             path_points(:,2) = yy;
         end
         
-%         function segment_polygon_depths = segment_recognition(obj, segment_label, )
 
             function [nan_path_depths, nan_path_points] = segmentDepthRecognition_ForStartAndEnd(obj, nan_segment, nan_path)
+            % Perform smoothing and depth discrimination on the start points and end points. Output the smoothed points and depth.
             segment_name = obj.segments{nan_segment}.region;
             disp(['Start segment belongs to: ', segment_name]);
 
@@ -561,8 +561,7 @@ end
             end        
 
             function [nan_path_depths, nan_path_points] = segmentDepthRecognition_ForLoop(obj, nan_segment_name, nan_path)
-%             segment_name = obj.segments{nan_segment}.region;
-%             disp(['Start segment belongs to: ', segment_name]);
+            % Perform smoothing and depth discrimination on the mid-segment points. Output the smoothed points and depth.
 
             depare_index = find(strcmp({obj.pgon_memory.name}, 'depare'));
             if ~isempty(depare_index)

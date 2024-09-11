@@ -215,37 +215,37 @@ classdef processor
         if strcmp(category, 'depare')
             info_data = geom.info;
             max_depth = max([info_data.SOUACC, info_data.VERDAT]);
-            min_depth = 0; % 固定为0，避免负值归一化问题
+            min_depth = 0; % Fixed as 0 to avoid negative normalization problems
 
-            % 遍历每一个 info_data 结构体
+            % Traverse each info_data structure
             for i = 1:numel(info_data)
                 polygon = info_data(i).polygon;
                 souacc = info_data(i).SOUACC;
                 verdat = info_data(i).VERDAT;
 
-                % 选择合适的深度值
+                % Choose suitable color
                 if ~isnan(souacc)
                     depth_value = souacc;
                 elseif ~isnan(verdat)
                     depth_value = verdat;
                 else
-                    depth_value = NaN; % 如果没有深度信息，则设为 NaN
+                    depth_value = NaN; % If there is no depth, set NAN
                 end
 
-                % 根据深度值选择颜色
+                % Choose color based on the depth
                 if ~isnan(depth_value)
                     if depth_value < 0
-                        color = [0.85, 0.65, 0.13]; % 土黄色用于负值
+                        color = [0.85, 0.65, 0.13]; % Earthy yellow is used for negative values
                     else
-                        % 使用归一化的深度值生成颜色
+                        
                         normalized_depth = (depth_value - min_depth) / (max_depth - min_depth);
-                        color = [0, 1 - normalized_depth, 1]; % 蓝色基调，深度越大，颜色越深
+                        color = [0, 1 - normalized_depth, 1]; % Blue base, the deeper, the darker the color
                     end
                 else
-                    color = [0.5, 0.5, 0.5]; % 如果没有深度信息，使用灰色或跳过
+                    color = [0.5, 0.5, 0.5]; % If there is no depth info, skip it using gray color
                 end
 
-                % 绘制 polygon
+                % plot polygon
                 pgon_dp = plot(polygon, 'FaceColor', color, 'EdgeColor', 'none');
             end
         else

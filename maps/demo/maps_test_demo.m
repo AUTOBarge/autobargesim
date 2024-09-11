@@ -11,10 +11,10 @@ p.plot();
 
 pl = maps.planner(p.pgon_memory);
 % Defines the given starting and ending points
-given_point1 = [5.62634, 50.8806];
-given_point2 = [5.59477, 50.8776];
+% given_point1 = [~, ~];
+% given_point2 = [~, ~];
 
-% [given_point1, given_point2]=pl.generate_random_points(); % generate start(given point 1) and end points(given point 2) for testing
+[given_point1, given_point2]=pl.generate_random_points(); % generate start(given point 1) and end points(given point 2) for testing
 
 % planned path
 pl = pl.plan_path(given_point1, given_point2);
