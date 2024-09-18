@@ -151,8 +151,6 @@ if strcmpi(add_ts_vessel, 'y')
     %
     wp_wgs84 = plan.path_points;
     wgs84 = wgs84Ellipsoid;
-    lon0 = wp_wgs84(1,1);
-    lat0 = wp_wgs84(1,2);
     wp_pos = zeros(length(wp_wgs84),2);
     height = 0;
     for i =1:length(wp_wgs84)
