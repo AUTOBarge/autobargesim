@@ -20,4 +20,7 @@ pl = maps.planner(p.pgon_memory);
 pl = pl.plan_path(given_point1, given_point2);
 
 % Draw Path
-pl.plot_path(1);
+            %   num - Controls the content to be plotted
+            %         1: All information
+            %         2: Only waypoints, start point, end point, without node and best path
+pl.plot_path(2); 
