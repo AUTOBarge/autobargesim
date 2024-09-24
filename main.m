@@ -104,15 +104,19 @@ vessel1.actuators = actuatorClass(ship_dim, prop_params, rud_params);
 pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
 mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
 Flag_cont = input('Select the controller (Type 0 for PID or 1 for MPC): '); 
-vessel1.control.model = controlClass(pid_params, mpc_params, Flag_cont);
+
 vessel1.control.output = [200; 0]; % Initial control
 vessel1.control.param = [];
+vessel1.err.xtetot = 0;
+vessel1.err.psi_er_tot = 0;
 if Flag_cont == 1
+    vessel1.control.model=controlClass(Flag_cont,mpc_params);
     vessel1.control.param.mpc_nlp = vessel1.control.model.init_mpc();
     vessel1.control.param.args = vessel1.control.model.constraintcreator();
     vessel1.control.param.next_guess = vessel1.control.model.initial_guess_creator(vertcat(vessel1.model.sensor_state(3), vessel1.model.sensor_state(6)), vessel1.control.output);
+else
+    vessel1.control.model = controlClass(Flag_cont,pid_params);
 end
-
 
 add_ts_vessel = input('Do you want to add a target vessel? (y/n): ', 's');
 if strcmpi(add_ts_vessel, 'y')
@@ -242,16 +246,23 @@ for i = 1:t_f
         os.actuators = os.actuators.act_response(os.control.output, ctrl_command, h);
         os.model = os.model.sensor_dynamic_model(os.actuators, env_set);
     
-        % Vessle's state update (Euler integration)
+        % Vessel's state update (Euler integration)
         os.model.sensor_state = os.model.sensor_state + os.model.sensor_state_dot * h;
+        
+        % Calculate the performance indices
+        [xte,psi_er,vessel1.err.xtetot,vessel1.err.psi_er_tot,os.control.model] = os.control.model.XTECalc(os.model.sensor_state, chi, vessel1.wp.pos, vessel1.wp.idx, vessel1.err.xtetot, vessel1.err.psi_er_tot);
         
         % Update control action
         os.control.output = os.actuators.ctrl_actual';
     
         % store data for presentation
         xout(j, i, :) = [time, os.model.sensor_state', os.actuators.ctrl_actual, os.model.sensor_state_dot(1:3)'];
-
+        chi_d(i)=chi;
         vessels_hold(j) = os;
+
+        % store the performance indices
+        pout(i,:) = [xte,psi_er,vessel1.err.xtetot,vessel1.err.psi_er_tot];
+
     end
     vessels = vessels_hold;
 end
@@ -270,14 +281,62 @@ u_dot = xout(1, :, 10);
 v_dot = xout(1, :, 11);
 r_dot = xout(1, :, 12) * 180 / pi;
 
-%% Plots
-figure(2)
-plot(wp_pos(:,1)/ 38.5,wp_pos(:,2)/ 38.5,'-*r',LineWidth=1.5)
-hold on
-plot(x / 38.5, y / 38.5, '-b',LineWidth=1.5)
-grid, axis('equal'), xlabel('East (y/L)'), ylabel('North (x/L)'), title('Ship position')
+xte = pout(:,1);
+psi_er = pout(:,2) * 180 / pi;
+xtetot = pout(:,3);
+psi_er_tot = pout(:,4) * 180 / pi;
 
-figure(3)
+%% Plots
+f2=figure(2);
+movegui(f2,'northwest');
+% Stop button: stops the loop and closes the window
+
+uicontrol('Style', 'pushbutton', 'String', 'Stop', ...
+              'Position', [20 20 60 20], ...
+              'Callback', @(src, event) stopAndClose(f2));
+set(f2, 'UserData', true);
+
+plot(wp_pos(:,1),wp_pos(:,2),'-*r',LineWidth=1.5)
+hold on
+plot(x, y, '-b',LineWidth=1.5)
+grid, axis('equal'), xlabel('East (x)'), ylabel('North (y)'), title('Ship position')
+L=38.5;%ship_length
+B=5.05;%ship_width
+tr=2;
+
+ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2];
+ship_nose = [L/2, -B/2;L/2 + tr, 0; L/2, B/2];
+
+%Function to transform the ship vertices
+transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
+
+% Initial transformation and plotting
+transformed_body = transform_vertices(ship_body, psi(1), x(1), y(1));
+transformed_nose = transform_vertices(ship_nose, psi(1), x(1), y(1));
+
+ship_body_plot = fill(transformed_body(:,1), transformed_body(:,2), 'g');
+ship_nose_plot = fill(transformed_nose(:,1), transformed_nose(:,2), 'y');
+
+for k=2:length(x)-1
+    % If the figure has been closed manually
+    if ~ishandle(f2)
+        break;
+    end
+    transformed_body = transform_vertices(ship_body, psi(k), x(k), y(k));
+    transformed_nose = transform_vertices(ship_nose, psi(k), x(k), y(k));
+    % Update the ship's position
+    set(ship_body_plot,'Vertices',transformed_body);
+    set(ship_nose_plot,'Vertices',transformed_nose);
+    pause(0.01);
+    
+    % If the Stop button is pressed
+    if ~get(f2, 'UserData')
+        break;  
+    end
+end
+
+f3=figure(3);
+movegui(f3,'northeast');
 subplot(321),plot(t,u,'r'),xlabel('time (s)'),title('u (m/s)'),grid
 hold on;
 subplot(322),plot(t,v,'r'),xlabel('time (s)'),title('v (m/s)'),grid
@@ -286,4 +345,15 @@ subplot(324),plot(t,psi,'r'),xlabel('time (s)'),title('yaw angle \psi (deg)'),gr
 subplot(325),plot(t,delta,'r'),xlabel('time (s)'),title('rudder angle \delta (deg)'),grid 
 subplot(326),plot(t,n,'r'),xlabel('time (s)'),title('rpm'),grid
 
+f4=figure(4);
+movegui(f4,'southeast');
+subplot(211),plot(t,xte),xlabel('time (s)'),title('Cross-track error (m)'),grid
+subplot(212),plot(t,psi_er),xlabel('time (s)'),title('Heading error (deg)'),grid
+fprintf('Total accumulated cross-track error:%d \n',xtetot(end));
+fprintf('Total accumulated heading error:%d \n',psi_er_tot(end));
+end
+
+function stopAndClose(figHandle)
+        set(figHandle, 'UserData', false);
+        %close(figHandle);
 end
