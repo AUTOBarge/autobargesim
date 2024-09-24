@@ -72,6 +72,27 @@ classdef guidance
                 end
             end
         end
+        function [nominal_time, nominal_dist, actual_time, actual_dist] = perf(self,wp_pos,traj_x,traj_y,u_d,deltaT,iteration,threshold)
+            if length(traj_x)~=length(traj_x)
+                error("length of x and y must be the same")
+            end
+            
+            actual_time =(iteration-1)*deltaT;
+            actual_dist = 0;
+            for i=2:length(traj_x)
+                actual_dist = actual_dist + norm([traj_x(i)-traj_x(i-1),traj_y(i)-traj_y(i-1)]);
+            end
+            min_dist = 0;
+            for i=2:length(wp_pos)
+                min_dist = min_dist + norm([wp_pos(i,1)-wp_pos(i-1,1),wp_pos(i,2)-wp_pos(i-1,2)]);
+            end
+            % Minimum time in second, assume that speed is m/s and dist is
+            % in meter
+            min_time = min_dist/u_d;
+            if norm([traj_x(end)-wp_pos(end,1),traj_y(end)-wp_pos(end,2)])>threshold
+                warning("Ship have not reached the destionation yet. Considering set the simulation greater or equal " + min_time+ "s");
+            end
+        end
     end
 
     methods (Hidden)

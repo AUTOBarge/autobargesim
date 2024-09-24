@@ -74,12 +74,12 @@ end
 
 
 %Initialisation
-t_f = 8000; % final simulation time (sec)
+t_f = 2e4; % final simulation time (sec)
 h = 0.2; % sample time (sec)
 
 %Create and initialise guidance class object
 los = LOSguidance();
-wp_speed = 100*ones(length(wp_pos),1);
+wp_speed = 3*ones(length(wp_pos),1);
 wp_idx = 1;
 initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
 [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, initial_state', wp_idx,1);
@@ -161,7 +161,12 @@ for i=1:t_f
     pout(i,:) = [xte,psi_er,xtetot,psi_er_tot];
 
     %End condition
-    
+    x_cur=xout(i, 5);
+    y_cur=xout(i, 6);
+    distance = norm([x_cur-wp_pos(end,1),y_cur-wp_pos(end,2)],2);
+    if distance <3
+        break
+    end
 end
 
 % time-series
@@ -182,7 +187,7 @@ xte = pout(:,1);
 psi_er = pout(:,2) * 180 / pi;
 xtetot = pout(:,3);
 psi_er_tot = pout(:,4) * 180 / pi;
-
+[nominal_time, nominal_dist, actual_time, actual_dist] = los.perf(wp_pos,x,y,3,h,i,3)
 %% Plots
 f2=figure(2);
 movegui(f2,'northwest');
@@ -249,7 +254,7 @@ subplot(212),plot(t,psi_er),xlabel('time (s)'),title('Heading error (deg)'),grid
 fprintf('Total accumulated cross-track error:%d \n',xtetot(end));
 fprintf('Total accumulated heading error:%d \n',psi_er_tot(end));
 end
-
+%%
 function stopAndClose(figHandle)
         set(figHandle, 'UserData', false);
         %close(figHandle);
