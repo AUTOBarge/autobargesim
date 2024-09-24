@@ -193,20 +193,26 @@ uicontrol('Style', 'pushbutton', 'String', 'Stop', ...
               'Callback', @(src, event) stopAndClose(f2));
 set(f2, 'UserData', true);
 
-plot(wp_pos(:,2),wp_pos(:,1),'-*r',LineWidth=1.5)
+plot(wp_pos(:,1),wp_pos(:,2),'-*r',LineWidth=1.5)
 hold on
-plot(y, x, '-b',LineWidth=1.5)
-grid, axis('equal'), xlabel('East (y)'), ylabel('North (x)'), title('Ship position')
+plot(x, y, '-b',LineWidth=1.5)
+grid, axis('equal'), xlabel('East (x)'), ylabel('North (y)'), title('Ship position')
 L=38.5;%ship_length
 B=5.05;%ship_width
 tr=2;
 
-ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2]*[cosd(psi(1)), -sind(psi(1)); sind(psi(1)), cosd(psi(1))]';
-ship_nose = [-L/2, -B/2;-L/2 - tr, 0; -L/2, B/2]*[cosd(psi(1)), -sind(psi(1)); sind(psi(1)), cosd(psi(1))]';
-ship_body_plot = fill(ship_body(:,1), ship_body(:,2), 'g');
-ship_nose_plot = fill(ship_nose(:,1), ship_nose(:,2), 'y');
+ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2];
+ship_nose = [L/2, -B/2;L/2 + tr, 0; L/2, B/2];
 
-transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), -sind(angle); sind(angle), cosd(angle)]') + [y, x];
+%Function to transform the ship vertices
+transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
+
+% Initial transformation and plotting
+transformed_body = transform_vertices(ship_body, psi(1), x(1), y(1));
+transformed_nose = transform_vertices(ship_nose, psi(1), x(1), y(1));
+
+ship_body_plot = fill(transformed_body(:,1), transformed_body(:,2), 'g');
+ship_nose_plot = fill(transformed_nose(:,1), transformed_nose(:,2), 'y');
 
 for k=2:length(x)-1
     % If the figure has been closed manually
