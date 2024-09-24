@@ -5,7 +5,7 @@ classdef controlClass
     %   This class provides the control commands for high-level or low-level vessel control.
     %
     % Properties:
-    %   - num_st and num_ct are reserved for the desiner and represents number of states and number of controls in the MPC model, respectively.
+    %   - num_st and num_ct are reserved for the designer and represents number of states and number of controls in the MPC model, respectively.
     %   - pid_params: Contains the PID controller gains(K_p, K_i, K_d), 
     %   - mpc_params: mpc_params = struct('Ts', sampling time, 'N', Prediction horizon, 'headingGain', Q in the cost function, 'rudderGain', R in the cost function, 'max_iter', maximum iteration of the MPC solver, 'deltaMAX', maximum allowed rudder angle)
     %   - Flag_cont: Reserved to act as a method to select the controller
@@ -38,18 +38,27 @@ classdef controlClass
     % Constructor
     methods
 
-        function obj = controlClass(pid_params,mpc_params,Flag_cont)
+        function obj = controlClass(Flag_cont,varargin)
             % Initialize the object
-            obj.num_ct = 1;%mpc_model.num_controls;
-            obj.num_st = 2;%mpc_model.num_states;
-            if nargin >0 %By default,a PID controller is implemented 
-                obj.pid_params = pid_params;
-                obj.mpc_params = mpc_params;
-                obj.Flag_cont = Flag_cont;
-            else
+            if Flag_cont==0 && nargin==1
                 obj.pid_params = struct("K_p",400,"T_i",10,"T_d",50,"psi_d_old",0,"error_old",0);
+                obj.Flag_cont = Flag_cont;
+            elseif Flag_cont==0 && nargin==2
+                pid_params=varargin{1,1};
+                obj.pid_params = pid_params;
+                obj.Flag_cont = Flag_cont;
+            elseif Flag_cont==1 && nargin==1
                 obj.mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-                obj.Flag_cont = 0;
+                obj.Flag_cont = Flag_cont;
+                obj.num_ct = 1;%mpc_model.num_controls;
+                obj.num_st = 2;%mpc_model.num_states;
+            elseif Flag_cont==1 && nargin==2
+                obj.mpc_params = varargin{1,1};
+                obj.Flag_cont = Flag_cont;
+                obj.num_ct = 1;%mpc_model.num_controls;
+                obj.num_st = 2;%mpc_model.num_states;
+            else
+                error('Error: Input provided is incorrect. Please refer to the documentation for the control module');
             end
 
         end
@@ -123,6 +132,7 @@ classdef controlClass
             
 
         end
+        
         function initial_guess = initial_guess_creator(obj, states, ctrl_last)
             N_mpc = obj.mpc_params.N;
             num_states = obj.num_st;
@@ -161,9 +171,7 @@ classdef controlClass
             args.ubx(num_states*(N_mpc+1)+1:1:num_states*(N_mpc+1) + num_controls*N_mpc) = dMax;  % max delta
 
 
-
         end
-
 
         function [ctrl_command,obj] = LowLevelPIDCtrl(obj,psi_d,r,psi,h)
                 
@@ -182,8 +190,6 @@ classdef controlClass
                 ctrl_command=[n_c,delta_c];
 
         end	
-
-
 
         function [ctrl_command, next_guess,obj] = LowLevelMPCCtrl(obj, states, psi_d, r_d, args, initial_guess, mpc_nlp)
             
@@ -212,7 +218,29 @@ classdef controlClass
             next_guess.u0 = horzcat(UC(:,2:end), UC(:,end)); % augmenting the last index of u since the first of is used
 
         end
-    end
+        
+        function [xte,psi_er,xtetot,psi_er_tot,obj] = XTECalc(obj, states, psi_d, wp_pos, wp_idx,xtetot,psi_er_tot)
+            
+            xp=states(4);
+            yp=states(5);
+            psi=states(6);
+            
+            if wp_idx >= length(wp_pos)
+                wp_vec=wp_pos(wp_idx,:)-wp_pos(wp_idx-1,:);
+            else
+                wp_vec=wp_pos(wp_idx+1,:)-wp_pos(wp_idx,:);
+            end
+            pos_vec=[xp yp]-wp_pos(wp_idx,:);
+            crossprod=cross([wp_vec 0],[pos_vec 0]);
+            %Cross track error (XTE)
+            xte=norm(crossprod)/norm(wp_vec);
+            %Heading angle error
+            psi_er=mod(abs(psi_d-psi),pi);
+            %Accumulated XTE and heading angle errors
+            xtetot=xtetot+xte;
+            psi_er_tot=psi_er_tot+psi_er;
+            
+        end
 end
 
-
+end
