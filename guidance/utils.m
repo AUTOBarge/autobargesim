@@ -1,4 +1,14 @@
 classdef utils
+    % Class Name: guidance
+    %
+    % Description:
+    %   This is a class created to contain utility functions required for \
+    %   guidance classes. 
+    %
+    % Author:
+	% 	Dhanika Mahipala
+    % 
+
     methods (Static, Hidden)
         function  wrapped_ang_diff = wrap_angle_diff_to_pmpi(a_1, a_2)
             % Wraps angle difference a_1 - a_2 to within [-pi, pi)

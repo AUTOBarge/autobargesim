@@ -1,4 +1,15 @@
 classdef LOSguidance < guidance
+    % Class Name: guidance
+    %
+    % Description:
+    %   This is a subclass created to contain methods related to
+    %   Line-of-Sight Guidance Law.
+    %
+    % Author:
+	% 	Dhanika Mahipala
+    %   Hoang Anh Tran
+    % 
+
     properties (Constant, Hidden)
         default_K_p = 1.0 / 50.0;
     end
