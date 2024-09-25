@@ -185,9 +185,11 @@ if strcmpi(add_ts_vessel, 'y')
     % Create and initialise control class object
     pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
     mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-    % Flag_cont = input('Select the controller (Type 0 for PID or 1 for MPC): '); 
+    Flag_cont = 0; % The second vessel will get PID controller by default
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
+    vessel2.err.xtetot = 0;
+    vessel2.err.psi_er_tot = 0;
     if Flag_cont == 1
         vessel2.control.model=controlClass(Flag_cont,mpc_params);
         vessel2.control.param.mpc_nlp = vessel2.control.model.init_mpc();
@@ -252,18 +254,17 @@ for i = 1:t_f
         os.model.sensor_state = os.model.sensor_state + os.model.sensor_state_dot * h;
         
         % Calculate the performance indices
-        [xte,psi_er,vessel1.err.xtetot,vessel1.err.psi_er_tot,os.control.model] = os.control.model.XTECalc(os.model.sensor_state, chi, vessel1.wp.pos, vessel1.wp.idx, vessel1.err.xtetot, vessel1.err.psi_er_tot);
+        [xte,psi_er,os.err.xtetot,os.err.psi_er_tot,os.control.model] = os.control.model.XTECalc(os.model.sensor_state, chi, os.wp.pos, os.wp.idx, os.err.xtetot, os.err.psi_er_tot);
         
         % Update control action
         os.control.output = os.actuators.ctrl_actual';
     
         % store data for presentation
         xout(j, i, :) = [time, os.model.sensor_state', os.actuators.ctrl_actual, os.model.sensor_state_dot(1:3)'];
-        chi_d(i)=chi;
         vessels_hold(j) = os;
 
         % store the performance indices
-        pout(i,:) = [xte,psi_er,vessel1.err.xtetot,vessel1.err.psi_er_tot];
+        pout(j, i, :) = [xte, psi_er, os.err.xtetot, os.err.psi_er_tot];
 
     end
     vessels = vessels_hold;
@@ -283,10 +284,16 @@ u_dot = xout(1, :, 10);
 v_dot = xout(1, :, 11);
 r_dot = xout(1, :, 12) * 180 / pi;
 
-xte = pout(:,1);
-psi_er = pout(:,2) * 180 / pi;
-xtetot = pout(:,3);
-psi_er_tot = pout(:,4) * 180 / pi;
+xte = pout(1, :, 1);
+psi_er = pout(1, :, 2) * 180 / pi;
+xtetot = pout(1, :, 3);
+psi_er_tot = pout(1, :, 4) * 180 / pi;
+
+if strcmpi(add_ts_vessel, 'y')
+    x_ts = xout(2, :, 5);
+    y_ts = xout(2, :, 6);
+    psi_ts = xout(2, :, 7) * 180 / pi;
+end
 
 %% Plots
 f2=figure(2);
@@ -302,9 +309,9 @@ plot(wp_pos(:,1),wp_pos(:,2),'-*r',LineWidth=1.5)
 hold on
 plot(x, y, '-b',LineWidth=1.5)
 grid, axis('equal'), xlabel('East (x)'), ylabel('North (y)'), title('Ship position')
-L=38.5;%ship_length
-B=5.05;%ship_width
-tr=2;
+L = 38.5;%ship_length
+B = 5.05;%ship_width
+tr = 2;
 
 ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2];
 ship_nose = [L/2, -B/2;L/2 + tr, 0; L/2, B/2];
@@ -313,22 +320,40 @@ ship_nose = [L/2, -B/2;L/2 + tr, 0; L/2, B/2];
 transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
 
 % Initial transformation and plotting
-transformed_body = transform_vertices(ship_body, psi(1), x(1), y(1));
-transformed_nose = transform_vertices(ship_nose, psi(1), x(1), y(1));
+transformed_body_os = transform_vertices(ship_body, psi(1), x(1), y(1));
+transformed_nose_os = transform_vertices(ship_nose, psi(1), x(1), y(1));
+if strcmpi(add_ts_vessel, 'y')
+    transformed_body_ts = transform_vertices(ship_body, psi_ts(1), x_ts(1), y_ts(1));
+    transformed_nose_ts = transform_vertices(ship_nose, psi_ts(1), x_ts(1), y_ts(1));
+end
 
-ship_body_plot = fill(transformed_body(:,1), transformed_body(:,2), 'g');
-ship_nose_plot = fill(transformed_nose(:,1), transformed_nose(:,2), 'y');
+ship_body_plot_os = fill(transformed_body_os(:,1), transformed_body_os(:,2), 'g');
+ship_nose_plot_os = fill(transformed_nose_os(:,1), transformed_nose_os(:,2), 'y');
+if strcmpi(add_ts_vessel, 'y')
+    ship_body_plot_ts = fill(transformed_body_ts(:,1), transformed_body_ts(:,2), 'g');
+    ship_nose_plot_ts = fill(transformed_nose_ts(:,1), transformed_nose_ts(:,2), 'y');
+end
 
 for k=2:length(x)-1
     % If the figure has been closed manually
     if ~ishandle(f2)
         break;
     end
-    transformed_body = transform_vertices(ship_body, psi(k), x(k), y(k));
-    transformed_nose = transform_vertices(ship_nose, psi(k), x(k), y(k));
+
+    transformed_body_os = transform_vertices(ship_body, psi(k), x(k), y(k));
+    transformed_nose_os = transform_vertices(ship_nose, psi(k), x(k), y(k));
+    if strcmpi(add_ts_vessel, 'y')
+        transformed_body_ts = transform_vertices(ship_body, psi_ts(k), x_ts(k), y_ts(k));
+        transformed_nose_ts = transform_vertices(ship_nose, psi_ts(k), x_ts(k), y_ts(k));
+    end
+
     % Update the ship's position
-    set(ship_body_plot,'Vertices',transformed_body);
-    set(ship_nose_plot,'Vertices',transformed_nose);
+    set(ship_body_plot_os, 'Vertices', transformed_body_os);
+    set(ship_nose_plot_os, 'Vertices', transformed_nose_os);
+    if strcmpi(add_ts_vessel, 'y')
+        set(ship_body_plot_ts, 'Vertices', transformed_body_ts);
+        set(ship_nose_plot_ts, 'Vertices', transformed_nose_ts);
+    end
     pause(0.01);
     
     % If the Stop button is pressed
