@@ -1,4 +1,16 @@
 classdef guidance
+    % Class Name: guidance
+    %
+    % Description:
+    %   This is a superclass created to contain common methods that can be
+    %   used by a subclasses created for specific guidance controller
+    %   algorithms
+    %
+    % Author:
+	% 	Dhanika Mahipala
+    %   Hoang Anh Tran
+    % 
+
     properties (Constant, Hidden)
         default_R_a = 5.0;
         default_pass_angle_threshold = 90.0;
