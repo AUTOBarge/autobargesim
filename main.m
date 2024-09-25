@@ -11,7 +11,7 @@ usePackageShapeFiles = input('Do you want to use the maps included in the packag
     
 if strcmpi(usePackageShapeFiles, 'y')
     % Prompt user to choose the area
-    areaChoice = input('Choose the area (1 for Albert canal, 2 for Leuven area): ');
+    areaChoice = input('Choose the area\n 1 for Albert canal or,\n 2 for Leuven area: ');
     switch areaChoice
         case 1
         shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Albert canal');
@@ -19,7 +19,7 @@ if strcmpi(usePackageShapeFiles, 'y')
         defaultEnd = [4.5088209, 51.2361481];   
         case 2
         shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Leuven area');
-        defaultStart = [0, 0];  % Default values for Leven area
+        defaultStart = [0, 0];  % Default values for Leuven area
         defaultEnd = [0, 0];
         otherwise
         error('Invalid choice. Please run the program again and select a valid area.');
@@ -85,8 +85,10 @@ vessel1.guidance = LOSguidance();
 vessel1.wp.pos = wp_pos;
 vessel1.wp.speed = 100*ones(length(wp_pos),1);
 vessel1.wp.idx = 1;
-[chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, [0 0 0 0 0 0], vessel1.wp.idx, 1);
+initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
+[chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1);
 initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
+chi_d = zeros(1,t_f); %Desired track is stored in chi_d
 
 % Create and initialise model class objects
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
@@ -103,19 +105,21 @@ vessel1.actuators = actuatorClass(ship_dim, prop_params, rud_params);
 % Create and initialise control class object
 pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
 mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-Flag_cont = input('Select the controller (Type 0 for PID or 1 for MPC): '); 
+Flag_cont = input('Select the controller (Type 1 for PID or 2 for MPC): '); 
 
 vessel1.control.output = [200; 0]; % Initial control
 vessel1.control.param = [];
 vessel1.err.xtetot = 0;
 vessel1.err.psi_er_tot = 0;
-if Flag_cont == 1
+if Flag_cont == 2
     vessel1.control.model=controlClass(Flag_cont,mpc_params);
     vessel1.control.param.mpc_nlp = vessel1.control.model.init_mpc();
     vessel1.control.param.args = vessel1.control.model.constraintcreator();
     vessel1.control.param.next_guess = vessel1.control.model.initial_guess_creator(vertcat(vessel1.model.sensor_state(3), vessel1.model.sensor_state(6)), vessel1.control.output);
-else
+elseif Flag_cont == 1
     vessel1.control.model = controlClass(Flag_cont,pid_params);
+else
+    error('Invalid Input. Please run main.m again');
 end
 
 add_ts_vessel = input('Do you want to add a target vessel? (y/n): ', 's');
@@ -185,12 +189,12 @@ if strcmpi(add_ts_vessel, 'y')
     % Create and initialise control class object
     pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
     mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-    Flag_cont = 0; % The second vessel will get PID controller by default
+    Flag_cont = 1; % The second vessel will get PID controller by default
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
     vessel2.err.xtetot = 0;
     vessel2.err.psi_er_tot = 0;
-    if Flag_cont == 1
+    if Flag_cont == 2
         vessel2.control.model=controlClass(Flag_cont,mpc_params);
         vessel2.control.param.mpc_nlp = vessel2.control.model.init_mpc();
         vessel2.control.param.args = vessel2.control.model.constraintcreator();
@@ -238,11 +242,11 @@ for i = 1:t_f
                                                                                                ts_sensor_states);
         end
     
-        if Flag_cont == 1 % Implement the MPC controller
+        if Flag_cont == 2 % Implement the MPC controller
             r_d = chi - psi;
             [ctrl_command_MPC, os.control.param.next_guess, os.control.model] = os.control.model.LowLevelMPCCtrl(vertcat(os.model.sensor_state, os.control.output), chi, r_d, os.control.param.args, os.control.param.next_guess, os.control.param.mpc_nlp);
             ctrl_command = [340; ctrl_command_MPC];
-        else % Implement the PID controller
+        else  % Implement the PID controller
             [ctrl_command, os.control.model] = os.control.model.LowLevelPIDCtrl(chi, r, psi, h);
         end
         
