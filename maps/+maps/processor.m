@@ -30,13 +30,41 @@ classdef processor
     
     
     methods
-        function obj = processor(desirename,folder)
+      function obj = processor(desirename, folder)
             if nargin > 0
-                % processor constructor
                 obj.desirename = desirename;
                 obj.folder = folder;
-                obj.files=dir(fullfile(folder,'*.shp'));
-                obj.pgon_memory = obj.set(desirename, obj.files, folder);
+                obj.files = dir(fullfile(folder, '*.shp'));
+                
+                % check mat file
+                matFilePath = fullfile(folder, 'processed_data.mat');
+                if isfile(matFilePath)
+                    % load
+                    loadedData = load(matFilePath);
+                    
+                    % consistency
+                    matFileNames = {loadedData.files.name};
+                    currentFileNames = {obj.files.name};
+                    if isequal(sort(matFileNames), sort(currentFileNames)) && ...
+                       isequal(loadedData.folder, folder) && ...
+                       isequal(loadedData.desirename, desirename)
+                        obj.pgon_memory = loadedData.pgon_memory;
+                        disp('Loaded data from existing mat file.');
+                    else
+                        obj.pgon_memory = obj.set(desirename, obj.files, folder);
+                        files = obj.files;
+                        pgon_memory = obj.pgon_memory;
+                        save(matFilePath, 'pgon_memory', 'files', 'folder', 'desirename');
+                        disp('Processed files and saved data to mat file.');
+                    end
+                else
+                    obj.pgon_memory = obj.set(desirename, obj.files, folder);
+                 
+                    files = obj.files;
+                    pgon_memory = obj.pgon_memory;
+                    save(matFilePath, 'pgon_memory', 'files', 'folder', 'desirename');
+                    disp('Processed files and saved data to mat file.');
+                end
             else
                 disp('No input arguments provided.');
             end
@@ -62,6 +90,7 @@ classdef processor
             % plot method
             for idx = 1:length(obj.pgon_memory)
                 maps.processor.plotGeometries(obj.pgon_memory(idx));
+                title('Use the Pan, Zoom-in, and Zoom-out buttons to browse the map')
             end
         end
     end
@@ -139,6 +168,7 @@ classdef processor
 
                 if strcmp( mapdata(1).Geometry,'Polygon' )
                     index_polt=3;
+                    warning('off', 'MATLAB:polyshape:repairedBySimplify');
                     pgon = polyshape(mapdata(1).X, mapdata(1).Y);
                     if n_mapdata==1
                         memory.polygons=union(memory.polygons,pgon);
@@ -154,27 +184,36 @@ classdef processor
             end
 
             function plotGeometries(geom)
+                % Defines the color mapping
+                colorMap = containers.Map({'depare', 'bridge', 'wtwaxs', 'lndare'}, ...
+                                      {[0.12, 0.56, 1.0], 'none', [0.75, 0.75, 0.75], [0.85, 0.65, 0.41]});
                 axis auto;
                 hold on;
-                if isfield(geom, 'polygons') && ~isempty(geom.polygons.Vertices) && ~isempty(geom.polygons)
-                    % plot polygons
-                    plot(geom.polygons);
+            if isfield(geom, 'polygons') && ~isempty(geom.polygons.Vertices) && ~isempty(geom.polygons)
+                category = geom.name;
+                if isKey(colorMap, category)
+                    if strcmp(category, 'bridge')
+                        pgon_pl = plot(geom.polygons, 'FaceColor', [0.75, 0.75, 0.75], 'FaceAlpha', 0.3);
+                    else
+                        pgon_pl = plot(geom.polygons, 'FaceColor', colorMap(category));
+                    end
+                else
+                    pgon_pl = plot(geom.polygons);
                 end
-                
-                if isfield(geom, 'lines') && ~isempty(geom.lines)
-                    % plot lines
-                    line_pl = line(geom.lines(1,:), geom.lines(2,:));
-                    line_pl.LineStyle = '--';
-                    line_pl.LineWidth = 1;
-                end
+            end
             
-                if isfield(geom, 'points') && ~isempty(geom.points)
-                    % plot points
-                    sz = 5;
-                    scatter(geom.points(1,:), geom.points(2,:), sz, 'MarkerEdgeColor', [0 .5 .5], ...
-                        'MarkerFaceColor', [0 .7 .7], 'LineWidth', 1.5);
-                end
-                hold off;
+            if isfield(geom, 'lines') && ~isempty(geom.lines)
+                line_pl = line(geom.lines(1, :), geom.lines(2, :));
+                line_pl.LineStyle = '--';
+                line_pl.LineWidth = 1;
+            end
+        
+            if isfield(geom, 'points') && ~isempty(geom.points)
+                sz = 5;
+                scatter(geom.points(1, :), geom.points(2, :), sz, 'MarkerEdgeColor', [0 .5 .5], ...
+                    'MarkerFaceColor', [0 .7 .7], 'LineWidth', 1.5);
+            end
+            hold off;
                 end
     end
            
