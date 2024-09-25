@@ -186,13 +186,15 @@ if strcmpi(add_ts_vessel, 'y')
     pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
     mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
     % Flag_cont = input('Select the controller (Type 0 for PID or 1 for MPC): '); 
-    vessel2.control.model = controlClass(pid_params, mpc_params, Flag_cont);
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
     if Flag_cont == 1
+        vessel2.control.model=controlClass(Flag_cont,mpc_params);
         vessel2.control.param.mpc_nlp = vessel2.control.model.init_mpc();
         vessel2.control.param.args = vessel2.control.model.constraintcreator();
         vessel2.control.param.next_guess = vessel2.control.model.initial_guess_creator(vertcat(vessel2.model.sensor_state(3), vessel2.model.sensor_state(6)), vessel2.control.output);
+    else
+        vessel2.control.model = controlClass(Flag_cont,pid_params);
     end
 
     % Initialize colision avoidance
