@@ -120,16 +120,32 @@ classdef controlClass
 
             nlp_prob = struct('f',obj_mpc, 'x', OPT_variables, 'g', g_mpc, 'p', P_mpc);
 
-            opts = struct;
-            opts.ipopt.max_iter = obj.mpc_params.max_iter;
-            opts.ipopt.print_level = 0; %0,3
-            opts.print_time = 0;
-            opts.verbose = 0;
-            opts.ipopt.acceptable_tol = 1e-8; % 1e-8;
-            opts.ipopt.acceptable_obj_change_tol = 1e-6;
+            % solver is not silent:
+            % opts = struct;
+            % opts.ipopt.max_iter = obj.mpc_params.max_iter;
+            % opts.ipopt.print_level = 0; %0,3
+            % opts.print_time = 0;
+            % opts.verbose = 0;
+            % opts.ipopt.acceptable_tol = 1e-8; % 1e-8;
+            % opts.ipopt.acceptable_obj_change_tol = 1e-6;
+            % 
+            % nlp =nlpsol('solver', 'ipopt', nlp_prob, opts);
 
-            nlp =nlpsol('solver', 'ipopt', nlp_prob, opts);
+            % solver is silent:
+	    opts_silent = struct;
+            opts_silent.ipopt.max_iter = obj.mpc_params.max_iter;
+            opts_silent.ipopt.print_level = 0;           % Disable IPOPT output (range: 0-12, where 0 is no output)
+            opts_silent.print_time = 0;                  % Disable CasADi time printing
+            opts_silent.verbose = 0;                     % Disable CasADi verbosity
+            opts_silent.ipopt.acceptable_tol = 1e-8;     % Acceptable tolerance
+            opts_silent.ipopt.acceptable_obj_change_tol = 1e-6;
+            opts_silent.ipopt.sb = 'yes';                % Suppress IPOPT banner
+            opts_silent.ipopt.file_print_level = 0;      % Disable output to any log files
+            opts_silent.ipopt.print_info_string = 'no';  % Suppress informational messages
+
+            nlp = nlpsol('solver', 'ipopt', nlp_prob, opts_silent);
             
+            disp('MPC is running, please wait. This might take sometime...')
 
         end
         
@@ -205,7 +221,7 @@ classdef controlClass
                               reshape(u0, num_controls*N_mpc, 1));
 
             sol = mpc_nlp('x0', args.x0, 'lbx', args.lbx, 'ubx', args.ubx, 'lbg', args.lbg, 'ubg', args.ubg, 'p', args.p);
-            disp(sol.f)
+            % disp(sol.f); % uncomment if you want to see the solve
             XX = full(sol.x(1:num_states*(N_mpc+1)));
             UU = full(sol.x(num_states*(N_mpc+1)+1:end));
             UC = reshape(UU, num_controls, N_mpc);
