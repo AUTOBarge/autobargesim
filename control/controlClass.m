@@ -20,7 +20,7 @@ classdef controlClass
 	% -LowLevelMPCCtrl: This method implements the low-level MPC controller.
     % Author:
 	% 	Abhishek Dhyani
-    %   AmirReza Haqshenas M.
+        %       AmirReza Haqshenas M.
 	% Date:
 	%	29/02/2024
 	% Version:
