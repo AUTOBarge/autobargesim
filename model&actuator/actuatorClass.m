@@ -185,7 +185,11 @@ classdef actuatorClass
             u = vel(1);
             v = vel(2);
             r = vel(3);
+            delta_max = 0.5*pi; %Set the threshold of delta
             delta = obj.ctrl_actual(2) * pi / 180;
+            if abs(delta) >=delta_max
+                delta = sign(delta)*delta_max;
+            end
             U = sqrt(u ^ 2 + v ^ 2);
             r_dash = r * L / U;
 
