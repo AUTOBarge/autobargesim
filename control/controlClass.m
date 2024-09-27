@@ -8,8 +8,8 @@ classdef controlClass
     %   - num_st and num_ct are reserved for the designer and represents number of states and number of controls in the MPC model, respectively.
     %   - pid_params: Contains the PID controller gains(K_p, K_i, K_d), 
     %   - mpc_params: mpc_params = struct('Ts', sampling time, 'N', Prediction horizon, 'headingGain', Q in the cost function, 'rudderGain', R in the cost function, 'max_iter', maximum iteration of the MPC solver, 'deltaMAX', maximum allowed rudder angle)
-    %   - Flag_cont: Reserved to act as a method to select the controller
-    %   type (PID, MPC). (Just put 0 or 1 the outcome is the same at the moment).
+    %   - Flag_cont: To select between the PID and MPC controller
+    %   (Set as 1 for PID and 2 for MPC controller).
     %   - (To be developed) Flag_act: To select whether the actuator model is considered or not.
     %
     % Methods:
@@ -31,7 +31,7 @@ classdef controlClass
     num_ct
     pid_params
     mpc_params
-    Flag_cont %0=PID,1=MPC
+    Flag_cont %1=PID,2=MPC
     %Flag_act (1,1) int {mustBePositive} = 0; %0=High-level control only, 1= High+Low-level control
     end
 
@@ -40,19 +40,19 @@ classdef controlClass
 
         function obj = controlClass(Flag_cont,varargin)
             % Initialize the object
-            if Flag_cont==0 && nargin==1
+            if Flag_cont==1 && nargin==1
                 obj.pid_params = struct("K_p",400,"T_i",10,"T_d",50,"psi_d_old",0,"error_old",0);
                 obj.Flag_cont = Flag_cont;
-            elseif Flag_cont==0 && nargin==2
+            elseif Flag_cont==1 && nargin==2
                 pid_params=varargin{1,1};
                 obj.pid_params = pid_params;
                 obj.Flag_cont = Flag_cont;
-            elseif Flag_cont==1 && nargin==1
+            elseif Flag_cont==2 && nargin==1
                 obj.mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
                 obj.Flag_cont = Flag_cont;
                 obj.num_ct = 1;%mpc_model.num_controls;
                 obj.num_st = 2;%mpc_model.num_states;
-            elseif Flag_cont==1 && nargin==2
+            elseif Flag_cont==2 && nargin==2
                 obj.mpc_params = varargin{1,1};
                 obj.Flag_cont = Flag_cont;
                 obj.num_ct = 1;%mpc_model.num_controls;

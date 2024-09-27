@@ -105,16 +105,17 @@ xtetot = 0;
 psi_er_tot = 0;
 pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
 mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-%Flag_cont = 0; %0 for PID, 1 for MPC
-Flag_cont = input('Select the controller\n Type 0 for PID Controller or, \n 1 for MPC Controller: ');    
+Flag_cont = input('Select the controller (Type 1 for PID or 2 for MPC): ');    
 
-if Flag_cont == 1
+if Flag_cont == 2
     control=controlClass(Flag_cont,mpc_params);
     mpc_nlp = control.init_mpc();
     args = control.constraintcreator();
     next_guess = control.initial_guess_creator(vertcat(Vessel.sensor_state(3),Vessel.sensor_state(6)), ctrl_last);
-else
+elseif Flag_cont == 1
     control=controlClass(Flag_cont,pid_params);
+else
+    error('Invalid Input. Please run main.m again');
 end
 
 % Start the loop for simulation
@@ -129,7 +130,7 @@ for i=1:t_f
     % Call LOS algorithm
     [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, states', wp_idx,1);
 
-    if Flag_cont == 1 % Implement the MPC controller
+    if Flag_cont == 2 % Implement the MPC controller
         r_d = chi - psi;
         [ctrl_command_MPC, next_guess,control] = control.LowLevelMPCCtrl(vertcat(states,ctrl_last), chi, r_d, args, next_guess, mpc_nlp);
         ctrl_command = [340 ; ctrl_command_MPC];%n_c
@@ -177,6 +178,7 @@ r = xout(:, 4) * 180 / pi;
 x = xout(:, 5);
 y = xout(:, 6);
 psi = xout(:, 7) * 180 / pi;
+psi_rad = psi* (pi / 180); % Heading angle in radians
 n = xout(:, 8);
 delta = xout(:, 9);
 u_dot = xout(:, 10);
@@ -187,55 +189,77 @@ xte = pout(:,1);
 psi_er = pout(:,2) * 180 / pi;
 xtetot = pout(:,3);
 psi_er_tot = pout(:,4) * 180 / pi;
-[nominal_time, nominal_dist, actual_time, actual_dist] = los.perf(wp_pos,x,y,3,h,i,3)
-%% Plots
-f2=figure(2);
-movegui(f2,'northwest');
-% Stop button: stops the loop and closes the window
+[nominal_time, nominal_dist, actual_time, actual_dist] = los.perf(wp_pos,x,y,3,h,i,3);
 
+% Convert ENU to WGS84
+ship_wgs84 =zeros(length(x),2);
+for i =1:length(x)
+    [lat,lon,h] = enu2geodetic(x(i),y(i),0,lat0,lon0,height,wgs84Ellipsoid);
+    ship_wgs84(i,:) = [lat,lon];
+end
+
+%% Plots
+figure(1)
+hold on
+lat=ship_wgs84(:,1);
+lon=ship_wgs84(:,2);
+plot(lon,lat,'-b',LineWidth=1.5)
+
+% Stop button: stops the loop and closes the window
 uicontrol('Style', 'pushbutton', 'String', 'Stop', ...
               'Position', [20 20 60 20], ...
-              'Callback', @(src, event) stopAndClose(f2));
-set(f2, 'UserData', true);
+              'Callback', @(src, event) stopAndClose(figure(1)));
+set(figure(1), 'UserData', true);
 
-plot(wp_pos(:,1),wp_pos(:,2),'-*r',LineWidth=1.5)
-hold on
-plot(x, y, '-b',LineWidth=1.5)
-grid, axis('equal'), xlabel('East (x)'), ylabel('North (y)'), title('Ship position')
+%Draw ship
 L=38.5;%ship_length
 B=5.05;%ship_width
 tr=2;
-
 ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2];
 ship_nose = [L/2, -B/2;L/2 + tr, 0; L/2, B/2];
 
+%Animate ship motion
+%lat_ref = lat(1); % Reference latitude
+meters_per_deg_lat = 111320;
+%meters_per_deg_lon = 111320 * cos(deg2rad(lat_ref));
+
 %Function to transform the ship vertices
-transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
+%transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
+transform_vertices_geo = @(vertices, angle, lat, lon) ...
+    (vertices * [cos(angle), sin(angle); -sin(angle), cos(angle)] * (1 / meters_per_deg_lat)) + [lon, lat];
 
 % Initial transformation and plotting
-transformed_body = transform_vertices(ship_body, psi(1), x(1), y(1));
-transformed_nose = transform_vertices(ship_nose, psi(1), x(1), y(1));
+transformed_body = transform_vertices_geo(ship_body, psi_rad(1), lat(1), lon(1));
+transformed_nose = transform_vertices_geo(ship_nose, psi_rad(1), lat(1), lon(1));
 
 ship_body_plot = fill(transformed_body(:,1), transformed_body(:,2), 'g');
 ship_nose_plot = fill(transformed_nose(:,1), transformed_nose(:,2), 'y');
 
-for k=2:length(x)-1
+for k=2:length(x)
     % If the figure has been closed manually
-    if ~ishandle(f2)
+    if ~ishandle(figure(1))
         break;
     end
-    transformed_body = transform_vertices(ship_body, psi(k), x(k), y(k));
-    transformed_nose = transform_vertices(ship_nose, psi(k), x(k), y(k));
+    transformed_body = transform_vertices_geo(ship_body, psi_rad(k), lat(k), lon(k));
+    transformed_nose = transform_vertices_geo(ship_nose, psi_rad(k), lat(k), lon(k));
     % Update the ship's position
-    set(ship_body_plot,'Vertices',transformed_body);
-    set(ship_nose_plot,'Vertices',transformed_nose);
+    set(ship_body_plot, 'XData', transformed_body(:,1), 'YData', transformed_body(:,2));
+    set(ship_nose_plot, 'XData', transformed_nose(:,1), 'YData', transformed_nose(:,2));
     pause(0.01);
     
     % If the Stop button is pressed
-    if ~get(f2, 'UserData')
+    if ~get(figure(1), 'UserData')
         break;  
     end
 end
+
+f2=figure(2);
+movegui(f2,'northwest');
+plot(wp_pos(:,1),wp_pos(:,2),'-*r',LineWidth=1.5)
+hold on
+plot(x, y, '-b',LineWidth=1.5)
+grid, axis('equal'), xlabel('East (x)'), ylabel('North (y)'), title('Ship position')
+legend('Desired Path with waypoints', 'Actual Path');
 
 f3=figure(3);
 movegui(f3,'northeast');
@@ -251,6 +275,11 @@ f4=figure(4);
 movegui(f4,'southeast');
 subplot(211),plot(t,xte),xlabel('time (s)'),title('Cross-track error (m)'),grid
 subplot(212),plot(t,psi_er),xlabel('time (s)'),title('Heading error (deg)'),grid
+
+fprintf('Nominal time:%d \n',nominal_time);
+fprintf('Nominal distance:%d \n',nominal_dist);
+fprintf('Actual time:%d \n',actual_time);
+fprintf('Actual distance:%d \n',actual_dist);
 fprintf('Total accumulated cross-track error:%d \n',xtetot(end));
 fprintf('Total accumulated heading error:%d \n',psi_er_tot(end));
 end
