@@ -10,16 +10,31 @@ classdef modelClass
     %   - ref_model_params: Parameters in the control reference model. datatype: structure array.
     %   - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
     %   - sensor_state_dot: Output (state_dot) of sensor dynamic model. datatype: array (6, 1).
-    %   - sensor_vel_relative: Relative velocity over ground used in sensor dynamic model. datatype: array (3, 1).
+    %   - sensor_vel_relative: Relative ship velocity over water under ship frame. datatype: array (3, 1).
     %   - ref_state: States used in control reference model. datatype: array (6, 1).
     %   - ref_state_dot: Output (state_dot) of control reference model. datatype: array (6, 1).
     %
     % Methods:
-    %   - pramsCalculator:
-    %       -- ship_params_calculator: This function calculates model parameters using imperical formulas based on ship dimensions.
-    %   - Models:
-    %       -- sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvring motion. It is highly accurate and serves as a virtual sensor.
-    %       -- ctrl_reference_model: This function provides a reference model for controllers (Fossen form with linear damping).
+    % - pramsCalculator:
+    %   - ship_params_calculator: This function calculates model parameters using empirical formulas based on ship dimensions and environment.
+    %     - Input Arguments:
+    %       env_set (structure array): Environment setting.
+    %     - Output Arguments:
+    %       obj.dyn_model_params (structure array): Parameters used in the sensor dynamic model.
+    %       obj.ref_model_params (structure array): Parameters used in the control reference model.
+    % - Models:
+    %   - sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvering motion. It is highly accurate and serves as a virtual sensor.
+    %     - Input Arguments:
+    %       Act: Actuator object.
+    %       env_set (structure array): Environment setting.
+    %     - Output Arguments:
+    %       obj.sensor_state_dot (array)
+    %   - ctrl_reference_model: This function provides reference model for controllers (Fossen form with linear damping).
+    %     - Input Arguments:
+    %       Act: Actuator object.
+    %       env_set (structure array): Environment setting.
+    %     - Output Arguments:
+    %       obj.ref_state_dot (array)
     %
     % Author:
     %   Yan-Yun Zhang
@@ -97,7 +112,7 @@ classdef modelClass
             Re = u_0 * L / 1.306e-6;
             C_F = 0.075 / (log10(Re) - 2) ^ 2;
             k = -0.07 + 0.487118 * (B / L) ^ 1.06806 * (d / L) ^ 0.46106 * (L / L_R) ^ 0.121563 * (L ^ 3 / disp) ^ 0.36486 * (1 - C_p) ^ (-0.604247);
-            delta_k = 0.644 * H / d ^ (-1.72); %Form factor correction from Millward (1989)
+            delta_k = 0.644 * (H / d) ^ (-1.72); %Form factor correction from Millward (1989)
             C_W = 0.0033;
             C_T = (1 + k + delta_k) * C_F + C_W; % Ct = R/(0.5*rho_water*S*U*2)
             R_dash = C_T * S / L / d;
@@ -138,7 +153,7 @@ classdef modelClass
             %This function provides a dynamic model for 3DOF maneuvring motion. It is highly accurate and serves as a virtual sensor.
             %
             %Output Arguments:
-            %- sensor_state_dot (list)
+            %- sensor_state_dot (array)
 
             %% Load environment setting
             V_c = env_set.V_c; % Water density in kg/m^3
@@ -237,7 +252,7 @@ classdef modelClass
             %This function provides reference model for controllers.
             %
             %Output Arguments:
-            %- ref_state_dot (list)
+            %- ref_state_dot (array)
 
             %% Load states
             u = obj.ref_state(1);
