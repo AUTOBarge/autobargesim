@@ -209,11 +209,12 @@ if strcmpi(add_ts_vessel, 'y')
 end
 
 vessels = [vessel1; vessel2];
-
+STOP = zeros(numel(vessels),1);
 %% Start the loop for simulation
 for i = 1:t_f
     vessels_hold = vessels;
     for j = 1:numel(vessels_hold)
+        if STOP(j)==0
         os = vessels_hold(j);
         ts = vessels_hold(setxor(1:numel(vessels_hold), j));
 
@@ -269,7 +270,19 @@ for i = 1:t_f
 
         % store the performance indices
         pout(j, i, :) = [xte, psi_er, os.err.xtetot, os.err.psi_er_tot];
-
+        % Checking if OS reaching the last wp:
+        x_cur=os.model.sensor_state(4);
+        y_cur=os.model.sensor_state(5);
+        distance = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
+        if distance < 3
+            STOP(j)= 1;
+        end
+        else
+            os.model.sensor_state = [0;0;0;os.model.sensor_state(4);os.model.sensor_state(5);os.model.sensor_state(6)];
+        end
+    end
+    if prod(STOP)==1
+        break;
     end
     vessels = vessels_hold;
 end
