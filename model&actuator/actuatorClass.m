@@ -15,12 +15,36 @@ classdef actuatorClass
     %   - tau_act: Total actuation force. datatype: array (3, 1).
     %
     % Methods:
-    %   - lowLevelControl:
-    %       -- act_response: This function describes the response of the actuators to the control command.
-    %   - forceModels:
-    %       -- get_prop_force: This function provides a propeller force model.
-    %       -- get_rud_force: This function provides a rudder force model.
-    %       -- get_act_force: This function combines forces from all actuation devices and produces a total actuation force.
+    % - lowLevelControl:
+    %   - act_response: This function describes the response of the actuators to the control command.
+    %     - Input Arguments:
+    %       ctrl_last (array (1, 2)): Last control action.
+    %       ctrl_command (array (1, 2)): Current control command.
+    %       h (num): Time step.
+    %     - Output Arguments:
+    %       obj.ctrl_actual (array (1, 2)): Actual control actions.
+    % - forceModels:
+    %   - get_prop_force: This function provides a propeller force model.
+    %     - Input Arguments:
+    %       env_set (structure array): Environment setting.
+    %       vel (array (3, 1)): Relative ship velocity over water under ship frame.
+    %     - Output Arguments:
+    %       J_P (num): Propeller advanced ratio.
+    %       K_T (num): Propeller thrust open water characteristic.
+    %       obj.F_P (array (3, 1)): Propeller force matrix.
+    %   - get_rud_force: This function provides a rudder force model.
+    %     - Input Arguments:
+    %       env_set (structure array): Environment setting.
+    %       vel (array): Relative ship velocity over water under ship frame.
+    %       J_P (num): Propeller advanced ratio.
+    %       K_T (num): Propeller thrust open water characteristic.
+    %     - Output Arguments:
+    %       obj.F_R (array (3, 1)): Rudder force matrix.
+    %   - get_act_force: This function combines forces from all actuation devices and produces a total actuation force.
+    %     - Input Arguments:
+    %       None
+    %     - Output Arguments:
+    %       obj.tau_act (array (3, 1)): Actuator force matrix.
     %
     % Author:
     %   Yan-Yun Zhang
@@ -84,6 +108,17 @@ classdef actuatorClass
                 n = n_c;
             end
 
+            n_min = 0;
+            n_max = 480;
+
+            if n < n_min
+                n = n_min;
+            end
+
+            if n > n_max
+                n = n_max;
+            end
+
             %% Update delta
             if delta_c ~= delta_l
                 sign_delta = sign(delta_c - delta_l);
@@ -95,6 +130,12 @@ classdef actuatorClass
 
             else
                 delta = delta_c;
+            end
+
+            delta_max = 35;
+
+            if abs(delta) > delta_max
+                delta = sign(delta) * delta_max;
             end
 
             obj.ctrl_actual = [n delta];
@@ -111,7 +152,7 @@ classdef actuatorClass
             %Output Arguments:
             %- J_P: Propeller advanced ratio.
             %- K_T: Propeller thrust open water characteristic.
-            %- F_P (list): Propeller force matrix.
+            %- F_P (array): Propeller force matrix.
 
             %% Load paramters
             scale = obj.ship_dim.scale;
@@ -162,7 +203,7 @@ classdef actuatorClass
         function obj = get_rud_force(obj, env_set, vel, J_P, K_T)
             %This function provides a rudder force model.
             %Output Arguments:
-            %- F_R (list): Rudder force matrix.
+            %- F_R (array): Rudder force matrix.
 
             %% Load paramters
             scale = obj.ship_dim.scale;
@@ -185,11 +226,7 @@ classdef actuatorClass
             u = vel(1);
             v = vel(2);
             r = vel(3);
-            delta_max = 0.5*pi; %Set the threshold of delta
             delta = obj.ctrl_actual(2) * pi / 180;
-            if abs(delta) >=delta_max
-                delta = sign(delta)*delta_max;
-            end
             U = sqrt(u ^ 2 + v ^ 2);
             r_dash = r * L / U;
 
@@ -231,7 +268,7 @@ classdef actuatorClass
         function obj = get_act_force(obj)
             %This function combines forces from all actuation devices and produces a total actuation force.
             %Output Arguments:
-            %- tau_act (list): Actuator force matrix.
+            %- tau_act (array): Actuator force matrix.
 
             obj.tau_act = obj.F_P + obj.F_R;
 
