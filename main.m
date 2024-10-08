@@ -210,6 +210,7 @@ end
 
 vessels = [vessel1; vessel2];
 STOP = zeros(numel(vessels),1);
+stop_time =zeros(numel(vessels),1);
 %% Start the loop for simulation
 for i = 1:t_f
     vessels_hold = vessels;
@@ -275,10 +276,18 @@ for i = 1:t_f
         y_cur=os.model.sensor_state(5);
         distance = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
         if distance < 3
-            STOP(j)= 1;
+            STOP(j)= 1; % Rise the stop flag for this vessel
+            stop_time(j)=i; % Record the stop time
         end
         else
+            % Vessel keep the same position with zero velocity
+            os = vessels_hold(j);
             os.model.sensor_state = [0;0;0;os.model.sensor_state(4);os.model.sensor_state(5);os.model.sensor_state(6)];
+            os.model.sensor_state_dot = [0;0;0;0;0;0];
+            os.control.output     = [0;0];
+            xout(j, i, :) = [time, os.model.sensor_state', os.actuators.ctrl_actual, os.model.sensor_state_dot(1:3)'];            
+            vessels_hold(j) = os;
+            pout(j, i, :)= pout(j, i-1, :);
         end
     end
     if prod(STOP)==1
@@ -311,7 +320,8 @@ if strcmpi(add_ts_vessel, 'y')
     y_ts = xout(2, :, 6);
     psi_ts = xout(2, :, 7) * 180 / pi;
 end
-
+[nominal_time_os, nominal_dist_os, actual_time_os, actual_dist_os] = os.guidance.perf(vessels(1).wp.pos,x,y,3,h,stop_time(1),3);
+[nominal_time_ts, nominal_dist_ts, actual_time_ts, actual_dist_ts] = ts.guidance.perf(vessels(2).wp.pos,x_ts,y_ts,3,h,stop_time(2),3);
 %% Plots
 f2=figure(2);
 movegui(f2,'northwest');
