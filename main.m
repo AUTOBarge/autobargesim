@@ -210,10 +210,16 @@ end
 
 vessels = [vessel1; vessel2];
 
+STOP = zeros(numel(vessels),1);
+stop_time =zeros(numel(vessels),1);
+
 %% Start the loop for simulation
 for i = 1:t_f
     vessels_hold = vessels;
     for j = 1:numel(vessels_hold)
+
+        if STOP(j)==0
+
         os = vessels_hold(j);
         ts = vessels_hold(setxor(1:numel(vessels_hold), j));
 
@@ -270,6 +276,27 @@ for i = 1:t_f
         % store the performance indices
         pout(j, i, :) = [xte, psi_er, os.err.xtetot, os.err.psi_er_tot];
 
+        % Checking if OS reaching the last wp:
+        x_cur=os.model.sensor_state(4);
+        y_cur=os.model.sensor_state(5);
+        distance = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
+        if distance < 3
+            STOP(j)= 1; % Rise the stop flag for this vessel
+            stop_time(j)=i; % Record the stop time
+        end
+        else
+            % Vessel keep the same position with zero velocity
+            os = vessels_hold(j);
+            os.model.sensor_state = [0;0;0;os.model.sensor_state(4);os.model.sensor_state(5);os.model.sensor_state(6)];
+            os.model.sensor_state_dot = [0;0;0;0;0;0];
+            os.control.output     = [0;0];
+            xout(j, i, :) = [time, os.model.sensor_state', os.actuators.ctrl_actual, os.model.sensor_state_dot(1:3)'];            
+            vessels_hold(j) = os;
+            pout(j, i, :)= pout(j, i-1, :);
+        end
+    end
+    if prod(STOP)==1
+        break;
     end
     vessels = vessels_hold;
 end
@@ -299,6 +326,18 @@ if strcmpi(add_ts_vessel, 'y')
     psi_ts = xout(2, :, 7) * 180 / pi;
 end
 
+xte = pout(1, :, 1);
+psi_er = pout(1, :, 2) * 180 / pi;
+xtetot = pout(1, :, 3);
+psi_er_tot = pout(1, :, 4) * 180 / pi;
+
+if strcmpi(add_ts_vessel, 'y')
+    x_ts = xout(2, :, 5);
+    y_ts = xout(2, :, 6);
+    psi_ts = xout(2, :, 7) * 180 / pi;
+end
+[nominal_time_os, nominal_dist_os, actual_time_os, actual_dist_os] = os.guidance.perf(vessels(1).wp.pos,x,y,3,h,stop_time(1),3);
+[nominal_time_ts, nominal_dist_ts, actual_time_ts, actual_dist_ts] = ts.guidance.perf(vessels(2).wp.pos,x_ts,y_ts,3,h,stop_time(2),3);
 %% Plots
 f2=figure(2);
 movegui(f2,'northwest');
