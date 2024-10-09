@@ -2,12 +2,13 @@ classdef modelClass
     % ClassName: modelClass
     %
     % Description:
-    %   This class provides dynamic models as virtual sensor / control reference model based on provided ship dimensions, environment setting and actuating forces from actuatorClass.
+    %   This class provides dynamic models as virtual sensor / control reference model / non-dimensionalized K T index, based on provided ship dimensions, environment setting and actuating forces from actuatorClass.
     %
     % Properties:
     %   - ship_dim: Ship dimensions. datatype: structure array.
     %   - dyn_model_params: Parameters in the sensor dynamic model. datatype: structure array.
     %   - ref_model_params: Parameters in the control reference model. datatype: structure array.
+    %   - KTindex: Parameters in the Nomoto model. datatype: structure array.
     %   - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
     %   - sensor_state_dot: Output (state_dot) of sensor dynamic model. datatype: array (6, 1).
     %   - sensor_vel_relative: Relative ship velocity over water under ship frame. datatype: array (3, 1).
@@ -19,9 +20,11 @@ classdef modelClass
     %   - ship_params_calculator: This function calculates model parameters using empirical formulas based on ship dimensions and environment.
     %     - Input Arguments:
     %       env_set (structure array): Environment setting.
+    %       rud_params (structure array): Rudder force model parameters.
     %     - Output Arguments:
-    %       obj.dyn_model_params (structure array): Parameters used in the sensor dynamic model.
-    %       obj.ref_model_params (structure array): Parameters used in the control reference model.
+    %       obj.dyn_model_params (structure array): Parameters in the sensor dynamic model.
+    %       obj.ref_model_params (structure array): Parameters in the control reference model.
+    %       obj.KTindex (structure array): Parameters in the Nomoto model.
     % - Models:
     %   - sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvering motion. It is highly accurate and serves as a virtual sensor.
     %     - Input Arguments:
@@ -49,6 +52,7 @@ classdef modelClass
         ship_dim
         dyn_model_params
         ref_model_params
+        KTindex
         sensor_state
         sensor_state_dot
         sensor_vel_relative
@@ -72,12 +76,13 @@ classdef modelClass
     % pramsCalculator
     methods
 
-        function obj = ship_params_calculator(obj, env_set)
+        function obj = ship_params_calculator(obj, env_set, rud_params)
             %This function calculates model parameters using imperical formulas based on ship dimensions.
             %
             %Output Arguments:
             %- obj.dyn_model_params (structure array): Parameters in the sensor dynamic model.
             %- obj.ref_model_params (structure array): Parameters in the control reference model.
+            %- obj.KTindex (structure array): Parameters in the Nomoto model.
 
             %% Load environment setting
             rho_water = env_set.rho_water; % Water density in kg/m^3
@@ -102,7 +107,9 @@ classdef modelClass
             m_dash = m / (0.5 * rho_water * L ^ 2 * d);
             I_z = m * (0.2536 * L) ^ 2;
             I_zG = I_z + x_G ^ 2 * m;
+            I_zG_dash = I_zG / (0.5 * rho_water * L ^ 4 * d);
             J_z = m * (0.01 * L * (33 - 76.85 * C_b * (1 - 0.784 * C_b) + 3.43 * L / B * (1 - 0.63 * C_b))) ^ 2;
+            J_z_dash = J_z / (0.5 * rho_water * L ^ 4 * d);
             m_x = 0.05 * m;
             m_x_dash = m_x / (0.5 * rho_water * L ^ 2 * d);
             m_y = m * (0.882 - 0.54 * C_b * (1 - 1.6 * d / B) - 0.156 * (1 - 0.673 * C_b) * L / B + 0.826 * d / B * L / B * (1 - 0.678 * d / B) - 0.638 * C_b * L / B * d / B * (1 - 0.669 * d / B));
@@ -138,9 +145,27 @@ classdef modelClass
             N_vvr_dash = 1.55 * C_b * B / L - 0.76;
             N_vrr_dash = -0.075 * (1 - C_b) * L / B + 0.098;
 
+            %% Calculate T index
+            T_dash =- (J_z_dash + I_zG_dash) / N_r_dash;
+            % T = T_dash * U / L
+
+            %% Calculate K index
+            % Load rudder parameters
+            C_R = rud_params.C_R / scale; % Averaged rudder chord length
+            B_R = rud_params.B_R / scale; % Rudder span
+            x_R_dash = rud_params.x_R_dash; % Longitudinal coordinate of rudder position
+            A_R = B_R * C_R; % Rudder area
+            aspect = B_R / C_R; % Rudder aspect ratio
+            f_alpha = 6.13 * aspect / (aspect + 2.25); % Rudder lift gradient coefficient
+            % Calculae N_delta_dash
+            N_delta_dash =- A_R * f_alpha * x_R_dash / (L * d);
+            K_dash =- (N_delta_dash) / N_r_dash;
+            % K = K_dash * U / L
+
             %% Construct outputs
             obj.dyn_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'X_vv_dash', X_vv_dash, 'X_rr_dash', X_rr_dash, 'X_vr_dash', X_vr_dash, 'Y_v_dash', Y_v_dash, 'Y_vvv_dash', Y_vvv_dash, 'Y_r_dash', Y_r_dash, 'Y_rrr_dash', Y_rrr_dash, 'Y_vvr_dash', Y_vvr_dash, 'Y_vrr_dash', Y_vrr_dash, 'N_v_dash', N_v_dash, 'N_vvv_dash', N_vvv_dash, 'N_r_dash', N_r_dash, 'N_rrr_dash', N_rrr_dash, 'N_vvr_dash', N_vvr_dash, 'N_vrr_dash', N_vrr_dash);
             obj.ref_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'Y_v_dash', Y_v_dash, 'Y_r_dash', Y_r_dash, 'N_v_dash', N_v_dash, 'N_r_dash', N_r_dash);
+            obj.KTindex = struct('K_dash', K_dash, 'T_dash', T_dash);
 
         end
 

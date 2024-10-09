@@ -13,6 +13,7 @@ None
 - ship_dim: Ship dimensions. datatype: structure array.
 - dyn_model_params: Parameters in the sensor dynamic model. datatype: structure array.
 - ref_model_params: Parameters in the control reference model. datatype: structure array.
+- KTindex: Parameters in the Nomoto model. datatype: structure array.
 - sensor_state: States used in sensor dynamic model. datatype: array (6, 1).
 - sensor_state_dot: Output (state_dot) of sensor dynamic model. datatype: array (6, 1).
 - sensor_vel_relative: sensor_vel_relative: Relative ship velocity over water under ship frame. datatype: array (3, 1).
@@ -25,9 +26,11 @@ None
   - ship_params_calculator: This function calculates model parameters using empirical formulas based on ship dimensions and environment.
     - Input Arguments:
        env_set (structure array): Environment setting.
+       rud_params (structure array): Rudder force model parameters.
     - Output Arguments:
-       obj.dyn_model_params (structure array): Parameters used in the sensor dynamic model.
-       obj.ref_model_params (structure array): Parameters used in the control reference model.
+       obj.dyn_model_params (structure array): Parameters in the sensor dynamic model.
+       obj.ref_model_params (structure array): Parameters in the control reference model.
+       obj.KTindex (structure array): Parameters in the Nomoto model.
 - Models:
   - sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvering motion. It is highly accurate and serves as a virtual sensor.
     - Input Arguments:
