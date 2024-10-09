@@ -122,7 +122,7 @@ classdef planner
                 plot(obj.given_point1(1), obj.given_point1(2), 'go', 'MarkerSize', 10, 'MarkerFaceColor', 'g');
                 plot(obj.given_point2(1), obj.given_point2(2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
                 plot(obj.path_points(:, 1), obj.path_points(:, 2), 'k.', 'MarkerSize', 10);
-                title('Graph Network with All Information');
+                title('Map Area with Navigation Data');
                 xlabel('X Coordinate');
                 ylabel('Y Coordinate');
     
