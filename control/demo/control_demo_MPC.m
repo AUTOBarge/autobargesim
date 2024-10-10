@@ -26,14 +26,14 @@ initial_ctrl = [200; 0]; % Initial control
 %% Initialization
 Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
-Vessel = Vessel.ship_params_calculator(env_set);
+Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = initial_state;
 ctrl_last = initial_ctrl;
 
 
 % State [u v r x y psi delta n], Controls [n_c delta_c]
 mpc_params = struct('Ts', h, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-Flag_cont = 1;
+Flag_cont = 2;
 psi_d= [pi/4];
 r_d = psi_d - Vessel.sensor_state(6)/h;
 

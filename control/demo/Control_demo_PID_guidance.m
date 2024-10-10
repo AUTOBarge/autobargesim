@@ -3,6 +3,12 @@
 % Demo for the implementation of waypoint tracking
 % using a PID heading controller.
 %
+% Author:
+%   Abhishek Dhyani
+% Date:
+%	10/10/2024
+% Version:
+% 	1.0
 clc; clear all; close all;
 %% Setting
 t_f = 500; % final simulation time (sec)
@@ -23,15 +29,15 @@ rud_params = struct("C_R", 1.6, "B_R", 1.4, "l_R_dash", -0.71, "t_R", 0.387, "al
 states = [0,0,0,0,0,deg2rad(45)]'; % Initial state [u v r x y psi] in column
 initial_ctrl = [200 0]; % Initial control
 %K_p: Controller P-gain, T_i: Controller integration time, T_d: Controller derivative time
-pid_params = struct("K_p",400,"T_i",10,"T_d",50,"psi_d_old",0,"error_old",0);
-Flag_cont = 0;
+pid_params = struct("K_p",50,"T_i",10,"T_d",40,"psi_d_old",0,"error_old",0);
+Flag_cont = 1;
 xtetot = 0;
 psi_er_tot = 0;
 
 %% Initialization
 Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
-Vessel = Vessel.ship_params_calculator(env_set);
+Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = states;
 
 PIDobj=controlClass(Flag_cont,pid_params);
@@ -39,8 +45,6 @@ ctrl_last = initial_ctrl;
 
 %% --- MAIN LOOP ---
 N = round(t_f / h); % number of samples
-xout = zeros(N + 1, 12); % Storing data
-pout = zeros(N + 1, 4); % Storing performance indices
 for i=1:N+1 
     vel = Vessel.sensor_state(1:3);
     r = Vessel.sensor_state(3); %rad/s
@@ -78,6 +82,11 @@ for i=1:N+1
 
     % store the performance indices
     pout(i,:) = [xte,psi_er,xtetot,psi_er_tot];
+
+    distance = norm([xout(i, 5)-wp_pos(end,1),xout(i, 6)-wp_pos(end,2)],2);
+    if distance <3
+        break
+    end
 end
 
 % time-series
