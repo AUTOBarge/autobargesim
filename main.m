@@ -46,7 +46,7 @@ h = 0.2; % sample time (sec)
 vessel1 = [];
 
 % Prompt user to provide start and end points
-fprintf('Please select the start and end points for the route of the ownship from the map \n');
+fprintf('Please select the start and end points for the route \n of the ownship from the map \n');
 st=drawpoint;
 en=drawpoint;
 start_long = st.Position(1);
@@ -66,7 +66,7 @@ end
 % Create a 'plan' class object and provide it the start and end points, plot the path
 plan = maps.planner(process.pgon_memory);
 plan = plan.plan_path([startPoint(1), startPoint(2)], [endPoint(1), endPoint(2)]);
-plan.plot_path(1);
+plan.plot_path(2);
 
 %
 wp_wgs84 = plan.path_points;
@@ -76,7 +76,7 @@ lat0 = wp_wgs84(1,2);
 wp_pos = zeros(length(wp_wgs84),2);
 height = 0;
 for i =1:length(wp_wgs84)
-    [xEast,yNorth,zUp] = geodetic2enu(wp_wgs84(i,2),wp_wgs84(i,1),height,lat0,lon0,height,wgs84);
+    [xEast,yNorth,~] = geodetic2enu(wp_wgs84(i,2),wp_wgs84(i,1),height,lat0,lon0,height,wgs84);
     wp_pos(i,:) = [xEast,yNorth];
 end
 
@@ -88,7 +88,6 @@ vessel1.wp.idx = 1;
 initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
 [chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1);
 initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
-chi_d = zeros(1,t_f); %Desired track is stored in chi_d
 
 % Create and initialise model class objects
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
@@ -134,7 +133,7 @@ vessel2 = [];
 
 % Prompt user to provide start and end points
 if strcmpi(add_ts_vessel, 'y')
-    fprintf('Please select the start and end points for the route of the targetship from the map \n');
+    fprintf('Please select the start and end points for the route \n of the targetship from the map \n');
     st=drawpoint;
     en=drawpoint;
     start_long = st.Position(1);
@@ -150,11 +149,11 @@ if strcmpi(add_ts_vessel, 'y')
         startPoint = [start_long, start_lat];
         endPoint = [end_long, end_lat];
     end
-    
+   
     % Create a 'plan' class object and provide it the start and end points, plot the path
     plan = maps.planner(process.pgon_memory);
     plan = plan.plan_path([startPoint(1), startPoint(2)], [endPoint(1), endPoint(2)]);
-    plan.plot_path(1);
+    plan.plot_path(2);
     
     %
     wp_wgs84 = plan.path_points;
@@ -162,7 +161,7 @@ if strcmpi(add_ts_vessel, 'y')
     wp_pos = zeros(length(wp_wgs84),2);
     height = 0;
     for i =1:length(wp_wgs84)
-        [xEast,yNorth,zUp] = geodetic2enu(wp_wgs84(i,2),wp_wgs84(i,1),height,lat0,lon0,height,wgs84);
+        [xEast,yNorth,~] = geodetic2enu(wp_wgs84(i,2),wp_wgs84(i,1),height,lat0,lon0,height,wgs84);
         wp_pos(i,:) = [xEast,yNorth];
     end
     
@@ -189,7 +188,6 @@ if strcmpi(add_ts_vessel, 'y')
     % Create and initialise control class object
     pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
     mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-    Flag_cont = 1; % The second vessel will get PID controller by default
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
     vessel2.err.xtetot = 0;
@@ -215,6 +213,9 @@ stop_time =zeros(numel(vessels),1);
 
 %% Start the loop for simulation
 for i = 1:t_f
+    if i==1
+       fprintf('The simulation has started... \n Please wait. This may take a while.')
+    end
     vessels_hold = vessels;
     for j = 1:numel(vessels_hold)
 
@@ -308,6 +309,7 @@ v = xout(1, :, 3);
 r = xout(1, :, 4) * 180 / pi;
 x = xout(1, :, 5);
 y = xout(1, :, 6);
+psi_rad = xout(1, :, 7);
 psi = xout(1, :, 7) * 180 / pi;
 n = xout(1, :, 8);
 delta = xout(1, :, 9);
@@ -323,55 +325,75 @@ psi_er_tot = pout(1, :, 4) * 180 / pi;
 if strcmpi(add_ts_vessel, 'y')
     x_ts = xout(2, :, 5);
     y_ts = xout(2, :, 6);
+    psi_ts_rad = xout(2, :, 7);
     psi_ts = xout(2, :, 7) * 180 / pi;
 end
 
-xte = pout(1, :, 1);
-psi_er = pout(1, :, 2) * 180 / pi;
-xtetot = pout(1, :, 3);
-psi_er_tot = pout(1, :, 4) * 180 / pi;
+[nominal_time_os, nominal_dist_os, actual_time_os, actual_dist_os] = os.guidance.perf(vessels(1).wp.pos,x,y,3,h,stop_time(1),3);
+if strcmpi(add_ts_vessel, 'y')
+[nominal_time_ts, nominal_dist_ts, actual_time_ts, actual_dist_ts] = ts.guidance.perf(vessels(2).wp.pos,x_ts,y_ts,3,h,stop_time(2),3);
+end
+% Convert ENU to WGS84
+ship_wgs84 =zeros(length(x),2);
+for i =1:length(x)
+    [lat,lon,~] = enu2geodetic(x(i),y(i),0,lat0,lon0,height,wgs84Ellipsoid);
+    ship_wgs84(i,:) = [lat,lon];
+end
 
 if strcmpi(add_ts_vessel, 'y')
-    x_ts = xout(2, :, 5);
-    y_ts = xout(2, :, 6);
-    psi_ts = xout(2, :, 7) * 180 / pi;
+    tship_wgs84 =zeros(length(x_ts),2);
+    for i =1:length(x_ts)
+        [lat2,lon2,~] = enu2geodetic(x_ts(i),y_ts(i),0,lat0,lon0,height,wgs84Ellipsoid);
+        tship_wgs84(i,:) = [lat2,lon2];
+    end
 end
-[nominal_time_os, nominal_dist_os, actual_time_os, actual_dist_os] = os.guidance.perf(vessels(1).wp.pos,x,y,3,h,stop_time(1),3);
-[nominal_time_ts, nominal_dist_ts, actual_time_ts, actual_dist_ts] = ts.guidance.perf(vessels(2).wp.pos,x_ts,y_ts,3,h,stop_time(2),3);
 %% Plots
-f2=figure(2);
-movegui(f2,'northwest');
-% Stop button: stops the loop and closes the window
+figure(1)
+hold on
+lat=ship_wgs84(:,1);
+lon=ship_wgs84(:,2);
+plot(lon,lat,'-b',LineWidth=1.5)
 
+if strcmpi(add_ts_vessel, 'y')
+    lat2=tship_wgs84(:,1);
+    lon2=tship_wgs84(:,2);
+    plot(lon2,lat2,'-g',LineWidth=1.5)
+end
+% Stop button: stops the loop and closes the window
 uicontrol('Style', 'pushbutton', 'String', 'Stop', ...
               'Position', [20 20 60 20], ...
-              'Callback', @(src, event) stopAndClose(f2));
-set(f2, 'UserData', true);
+              'Callback', @(src, event) stopAndClose(figure(1)));
+set(figure(1), 'UserData', true);
 
-plot(wp_pos(:,1),wp_pos(:,2),'-*r',LineWidth=1.5)
-hold on
-plot(x, y, '-b',LineWidth=1.5)
-grid, axis('equal'), xlabel('East (x)'), ylabel('North (y)'), title('Ship position')
-L = 38.5;%ship_length
-B = 5.05;%ship_width
-tr = 2;
-
+%Draw ship
+L=38.5;%ship_length
+B=5.05;%ship_width
+tr=2;
 ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2];
 ship_nose = [L/2, -B/2;L/2 + tr, 0; L/2, B/2];
 
+%Animate ship motion
+%lat_ref = lat(1); % Reference latitude
+meters_per_deg_lat = 111320;
+%meters_per_deg_lon = 111320 * cos(deg2rad(lat_ref));
+
 %Function to transform the ship vertices
-transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
+%transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
+transform_vertices_geo = @(vertices, angle, lat, lon) ...
+    (vertices * [cos(angle), sin(angle); -sin(angle), cos(angle)] * (1 / meters_per_deg_lat)) + [lon, lat];
 
 % Initial transformation and plotting
-transformed_body_os = transform_vertices(ship_body, psi(1), x(1), y(1));
-transformed_nose_os = transform_vertices(ship_nose, psi(1), x(1), y(1));
+transformed_body_os = transform_vertices_geo(ship_body, psi_rad(1), lat(1), lon(1));
+transformed_nose_os = transform_vertices_geo(ship_nose, psi_rad(1), lat(1), lon(1));
+
 if strcmpi(add_ts_vessel, 'y')
-    transformed_body_ts = transform_vertices(ship_body, psi_ts(1), x_ts(1), y_ts(1));
-    transformed_nose_ts = transform_vertices(ship_nose, psi_ts(1), x_ts(1), y_ts(1));
+    transformed_body_ts = transform_vertices_geo(ship_body, psi_ts_rad(1), lat2(1), lon2(1));
+    transformed_nose_ts = transform_vertices_geo(ship_nose, psi_ts_rad(1), lat2(1), lon2(1));
 end
 
 ship_body_plot_os = fill(transformed_body_os(:,1), transformed_body_os(:,2), 'g');
 ship_nose_plot_os = fill(transformed_nose_os(:,1), transformed_nose_os(:,2), 'y');
+
 if strcmpi(add_ts_vessel, 'y')
     ship_body_plot_ts = fill(transformed_body_ts(:,1), transformed_body_ts(:,2), 'g');
     ship_nose_plot_ts = fill(transformed_nose_ts(:,1), transformed_nose_ts(:,2), 'y');
@@ -379,30 +401,46 @@ end
 
 for k=2:length(x)-1
     % If the figure has been closed manually
-    if ~ishandle(f2)
+    if ~ishandle(figure(1))
         break;
     end
-
-    transformed_body_os = transform_vertices(ship_body, psi(k), x(k), y(k));
-    transformed_nose_os = transform_vertices(ship_nose, psi(k), x(k), y(k));
-    if strcmpi(add_ts_vessel, 'y')
-        transformed_body_ts = transform_vertices(ship_body, psi_ts(k), x_ts(k), y_ts(k));
-        transformed_nose_ts = transform_vertices(ship_nose, psi_ts(k), x_ts(k), y_ts(k));
-    end
+    transformed_body_os = transform_vertices_geo(ship_body, psi_rad(k), lat(k), lon(k));
+    transformed_nose_os = transform_vertices_geo(ship_nose, psi_rad(k), lat(k), lon(k));
+    
+      if strcmpi(add_ts_vessel, 'y')
+        transformed_body_ts = transform_vertices_geo(ship_body, psi_ts_rad(k), lat2(k), lon2(k));
+        transformed_nose_ts = transform_vertices_geo(ship_nose, psi_ts_rad(k), lat2(k), lon2(k));
+      end
 
     % Update the ship's position
-    set(ship_body_plot_os, 'Vertices', transformed_body_os);
-    set(ship_nose_plot_os, 'Vertices', transformed_nose_os);
+    set(ship_body_plot_os, 'XData', transformed_body_os(:,1), 'YData', transformed_body_os(:,2));
+    set(ship_nose_plot_os, 'XData', transformed_nose_os(:,1), 'YData', transformed_nose_os(:,2));
     if strcmpi(add_ts_vessel, 'y')
-        set(ship_body_plot_ts, 'Vertices', transformed_body_ts);
-        set(ship_nose_plot_ts, 'Vertices', transformed_nose_ts);
+        set(ship_body_plot_ts, 'XData', transformed_body_ts(:,1), 'YData', transformed_body_ts(:,2));
+        set(ship_nose_plot_ts, 'XData', transformed_nose_ts(:,1), 'YData', transformed_nose_ts(:,2));
     end
     pause(0.01);
     
     % If the Stop button is pressed
-    if ~get(f2, 'UserData')
+    if ~get(figure(1), 'UserData')
         break;  
     end
+end
+
+f2=figure(2);
+movegui(f2,'northwest');
+plot(vessel1.wp.pos(:,1),vessel1.wp.pos(:,2),'-*r',LineWidth=1.5)
+hold on
+plot(x, y, '-b',LineWidth=1.5)
+grid, axis('equal'), xlabel('East (x)'), ylabel('North (y)'), title('Ship position')
+
+if strcmpi(add_ts_vessel, 'y')
+    plot(vessel2.wp.pos(:,1),vessel2.wp.pos(:,2),'-*m',LineWidth=1.5)
+    plot(x_ts, y_ts, '-g',LineWidth=1.5)
+    legend('Own ships Desired Path with Waypoints', 'Own ships Actual Path',...
+        'Target ships Desired Path with Waypoints', 'Target ships Actual Path');
+else
+legend('Desired Path with waypoints', 'Actual Path');
 end
 
 f3=figure(3);
@@ -419,6 +457,19 @@ f4=figure(4);
 movegui(f4,'southeast');
 subplot(211),plot(t,xte),xlabel('time (s)'),title('Cross-track error (m)'),grid
 subplot(212),plot(t,psi_er),xlabel('time (s)'),title('Heading error (deg)'),grid
+
+fprintf('Own Ship Nominal time:%d \n',nominal_time_os);
+fprintf('Own Ship Nominal distance:%d \n',nominal_dist_os);
+fprintf('Own Ship Actual time:%d \n',actual_time_os);
+fprintf('Own Ship Actual distance:%d \n',actual_dist_os);
+
+if strcmpi(add_ts_vessel, 'y')
+fprintf('Target Ship Nominal time:%d \n',nominal_time_ts);
+fprintf('Target Ship Nominal distance:%d \n',nominal_dist_ts);
+fprintf('Target Ship Actual time:%d \n',actual_time_ts);
+fprintf('Target Ship Actual distance:%d \n',actual_dist_ts);
+end
+
 fprintf('Total accumulated cross-track error:%d \n',xtetot(end));
 fprintf('Total accumulated heading error:%d \n',psi_er_tot(end));
 end
