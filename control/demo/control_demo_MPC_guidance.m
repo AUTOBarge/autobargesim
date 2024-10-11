@@ -3,6 +3,13 @@
 % Demo for the implementation of waypoint tracking
 % using an MPC heading controller.
 %
+% Author:
+%   AmirReza Haqshenas M.
+%   Abhishek Dhyani.
+% Date:
+%	11/10/2024
+% Version:
+% 	1.0
 clc; clear all; close all;
 %% Setting
 t_f = 500; % final simulation time (sec)
@@ -22,7 +29,7 @@ prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, 
 rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
 states = [0, 0, 0, 0, 0, deg2rad(45)]'; % Initial state [u v r x y psi] in column
 mpc_params = struct('Ts', h, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-Flag_cont = 1;
+Flag_cont = 2;
 initial_ctrl = [200; 0]; % Initial control
 xtetot = 0;
 psi_er_tot = 0;
@@ -35,8 +42,6 @@ Vessel.sensor_state = states;
 ctrl_last = initial_ctrl;
 
 
-%psi_d= [pi/4];
-%r_d = psi_d - Vessel.sensor_state(6)/h;
 MPCobj=controlClass(Flag_cont,mpc_params);
 mpc_nlp = MPCobj.init_mpc();
 args = MPCobj.constraintcreator();
@@ -44,8 +49,6 @@ next_guess = MPCobj.initial_guess_creator(vertcat(Vessel.sensor_state(3),Vessel.
 
 %% --- MAIN LOOP ---
 N = round(t_f / h); % number of samples
-xout = zeros(N + 1, 12); % Storing data
-pout = zeros(N + 1, 4); % Storing performance indices
 n_c = 340; % defined command for the RPM of the propellers
 
 for i=1:N+1
@@ -85,6 +88,12 @@ for i=1:N+1
 
     % store the performance indices
     pout(i,:) = [xte,psi_er,xtetot,psi_er_tot];
+
+    %End condition
+    distance = norm([Vessel.sensor_state(4)-wp_pos(end,1),Vessel.sensor_state(5)-wp_pos(end,2)],2);
+        if distance < 3
+            break;
+        end
 end
 
 % time-series

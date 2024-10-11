@@ -3,6 +3,12 @@
 % Demo for the implementation of a heading setpoint 
 % tracking PID controller.
 %
+% Author:
+%   Abhishek Dhyani.
+% Date:
+%	11/10/2024
+% Version:
+% 	1.0
 clc; clear all; close all;
 %% Setting
 t_f = 500; % final simulation time (sec)
@@ -16,8 +22,8 @@ initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
 initial_ctrl = [0 0]; % Initial control
 %K_p: Controller P-gain, T_i: Controller integration time, T_d: Controller derivative time
 pid_params = struct("K_p",400,"T_i",10,"T_d",50,"psi_d_old",0,"error_old",0);
-Flag_cont = 0;
-psi_d=[pi/4];
+Flag_cont = 1;
+psi_d=pi/4;
 %% Initialization
 Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
