@@ -213,7 +213,7 @@ function main_gui()
         rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
         Vessel = modelClass(ship_dim);
         SRSP = actuatorClass(ship_dim, prop_params, rud_params);
-        Vessel = Vessel.ship_params_calculator(env_set);
+        Vessel = Vessel.ship_params_calculator(env_set, rud_params);
         Vessel.sensor_state = initial_state;
         
         % Create and initialise control class object
@@ -239,7 +239,7 @@ function main_gui()
         % Start the loop for simulation
         for i = 1:t_f
             if i==1
-                disp('The simulation has started...')
+                fprintf('The simulation has started... \n Please wait. This may take a while.')
             end
             states = Vessel.sensor_state;
             vel = states(1:3);

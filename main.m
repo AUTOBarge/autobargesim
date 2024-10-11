@@ -92,13 +92,13 @@ initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x
 % Create and initialise model class objects
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
 env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
+prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
+rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
 vessel1.model = modelClass(ship_dim);
-vessel1.model = vessel1.model.ship_params_calculator(env_set);
+vessel1.model = vessel1.model.ship_params_calculator(env_set, rud_params);
 vessel1.model.sensor_state = initial_state;
 
 % Create and initialise actuator class objects
-prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
-rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
 vessel1.actuators = actuatorClass(ship_dim, prop_params, rud_params);
 
 % Create and initialise control class object
@@ -176,13 +176,13 @@ if strcmpi(add_ts_vessel, 'y')
     % Create and initialise model class objects
     ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
     env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
+    prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
+    rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
     vessel2.model = modelClass(ship_dim);
-    vessel2.model = vessel2.model.ship_params_calculator(env_set);
+    vessel2.model = vessel2.model.ship_params_calculator(env_set, rud_params);
     vessel2.model.sensor_state = initial_state;
     
     % Create and initialise actuator class objects
-    prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
-    rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
     vessel2.actuators = actuatorClass(ship_dim, prop_params, rud_params);
     
     % Create and initialise control class object
