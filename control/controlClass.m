@@ -9,7 +9,7 @@ classdef controlClass
     %   - pid_params: Contains the PID controller gains(K_p, K_i, K_d), 
     %   - mpc_params: mpc_params = struct('Ts', sampling time, 'N', Prediction horizon, 'headingGain', Q in the cost function, 'rudderGain', R in the cost function, 'max_iter', maximum iteration of the MPC solver, 'deltaMAX', maximum allowed rudder angle)
     %   - Flag_cont: To select between the PID and MPC controller
-    %   (Set as 1 for PID and 2 for MPC controller).
+    %   type . (Set as 1 for PID and 2 for MPC controller).
     %   - (To be developed) Flag_act: To select whether the actuator model is considered or not.
     %
     % Methods:

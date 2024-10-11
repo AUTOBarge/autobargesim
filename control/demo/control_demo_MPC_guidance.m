@@ -3,12 +3,11 @@
 % Demo for the implementation of waypoint tracking
 % using an MPC heading controller.
 %
-%
-% Author:
+% Authors:
 %   AmirReza Haqshenas M.
-%   Abhishek Dhyani
+%   Abhishek Dhyani.
 % Date:
-%	10/10/2024
+%	11/10/2024
 % Version:
 % 	1.0
 clc; clear all; close all;
@@ -43,8 +42,6 @@ Vessel.sensor_state = states;
 ctrl_last = initial_ctrl;
 
 
-%psi_d= [pi/4];
-%r_d = psi_d - Vessel.sensor_state(6)/h;
 MPCobj=controlClass(Flag_cont,mpc_params);
 mpc_nlp = MPCobj.init_mpc();
 args = MPCobj.constraintcreator();
@@ -92,10 +89,12 @@ for i=1:N+1
     % store the performance indices
     pout(i,:) = [xte,psi_er,xtetot,psi_er_tot];
 
+    %End condition
     distance = norm([xout(i, 5)-wp_pos(end,1),xout(i, 6)-wp_pos(end,2)],2);
     if distance <3
         break
     end
+    
 end
 
 % time-series
