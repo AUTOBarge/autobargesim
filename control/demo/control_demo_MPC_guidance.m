@@ -3,7 +3,7 @@
 % Demo for the implementation of waypoint tracking
 % using an MPC heading controller.
 %
-% Author:
+% Authors:
 %   AmirReza Haqshenas M.
 %   Abhishek Dhyani.
 % Date:
@@ -37,7 +37,7 @@ psi_er_tot = 0;
 %% Initialization
 Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
-Vessel = Vessel.ship_params_calculator(env_set);
+Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = states;
 ctrl_last = initial_ctrl;
 
@@ -90,10 +90,11 @@ for i=1:N+1
     pout(i,:) = [xte,psi_er,xtetot,psi_er_tot];
 
     %End condition
-    distance = norm([Vessel.sensor_state(4)-wp_pos(end,1),Vessel.sensor_state(5)-wp_pos(end,2)],2);
-        if distance < 3
-            break;
-        end
+    distance = norm([xout(i, 5)-wp_pos(end,1),xout(i, 6)-wp_pos(end,2)],2);
+    if distance <3
+        break
+    end
+    
 end
 
 % time-series

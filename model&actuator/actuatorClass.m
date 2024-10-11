@@ -210,7 +210,7 @@ classdef actuatorClass
             L = obj.ship_dim.L; % Ship length
             D_P = obj.prop_params.D_P / scale; % Propeller diameter in m
             w_P0 = obj.prop_params.w_P0; % Wake coefficient at propeller position in straight moving
-            C_R = obj.rud_params.B_R / scale; % Averaged rudder chord length
+            C_R = obj.rud_params.C_R / scale; % Averaged rudder chord length
             B_R = obj.rud_params.B_R / scale; % Rudder span
             l_R_dash = obj.rud_params.l_R_dash; % Effective longitudinal coordinate of rudder position
             t_R = obj.rud_params.t_R; % Steering resistance deduction factor

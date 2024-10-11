@@ -15,7 +15,7 @@ initial_ctrl = [340 0]; % Initial control
 %% Initialization
 Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
-Vessel = Vessel.ship_params_calculator(env_set);
+Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = initial_state;
 ctrl_last = initial_ctrl;
 
@@ -60,9 +60,10 @@ grid, axis('equal'), xlabel('East (y/L)'), ylabel('North (x/L)'), title('Ship po
 figure(2)
 subplot(331), plot(t, u, 'r'), xlabel('time (s)'), title('u (m/s)'), grid
 subplot(332), plot(t, v, 'r'), xlabel('time (s)'), title('v (m/s)'), grid
+subplot(333), plot(t, r, 'r'), xlabel('time (s)'), title('r (deg/s)'), grid
 subplot(334), plot(t, psi, 'r'), xlabel('time (s)'), title('yaw angle \psi (deg)'), grid
 subplot(335), plot(t, delta, 'r'), xlabel('time (s)'), title('rudder angle \delta (deg)'), grid
 subplot(336), plot(t, n, 'r'), xlabel('time (s)'), title('rpm'), grid
-subplot(337), plot(t, u_dot, 'r'), xlabel('time (s)'), title('u dot (m/s)'), grid
-subplot(338), plot(t, v_dot, 'r'), xlabel('time (s)'), title('v dot (m/s)'), grid
-subplot(339), plot(t, r_dot, 'r'), xlabel('time (s)'), title('yaw rate r dot (deg/s)'), grid
+subplot(337), plot(t, u_dot, 'r'), xlabel('time (s)'), title('u dot (m/ss)'), grid
+subplot(338), plot(t, v_dot, 'r'), xlabel('time (s)'), title('v dot (m/ss)'), grid
+subplot(339), plot(t, r_dot, 'r'), xlabel('time (s)'), title('yaw rate r dot (deg/ss)'), grid

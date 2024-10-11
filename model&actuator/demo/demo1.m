@@ -15,7 +15,7 @@ initial_ctrl = [0 0]; % Initial control
 %% Initialization
 Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
-Vessel = Vessel.ship_params_calculator(env_set);
+Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = initial_state;
 ctrl_last = initial_ctrl;
 
