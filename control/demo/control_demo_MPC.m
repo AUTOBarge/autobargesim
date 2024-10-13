@@ -34,7 +34,7 @@ ctrl_last = initial_ctrl;
 % State [u v r x y psi delta n], Controls [n_c delta_c]
 mpc_params = struct('Ts', h, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
 Flag_cont = 2;
-psi_d= [pi/4];
+psi_d= pi/4;
 r_d = psi_d - Vessel.sensor_state(6)/h;
 
 
