@@ -17,7 +17,7 @@ h = 0.2; % sample time (sec)
 
 los = LOSguidance();
 % Predefined waypoints: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
-wp_pos = [0 0; 50 50; 170 170;340 350;480 580];
+wp_pos = [0 0; 50 50; 170 170;340 420;500 680];
 % Predefined surge speed at each waypoint segment: wp_speed = [U_1;...;U_n]
 wp_speed = ones(length(wp_pos),1);
 wp_idx = 1;
@@ -28,7 +28,6 @@ env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", pi);
 prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
 rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
 states = [0, 0, 0, 0, 0, deg2rad(45)]'; % Initial state [u v r x y psi] in column
-mpc_params = struct('Ts', h, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
 Flag_cont = 2;
 initial_ctrl = [200; 0]; % Initial control
 xtetot = 0;
@@ -40,7 +39,10 @@ SRSP = actuatorClass(ship_dim, prop_params, rud_params);
 Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = states;
 ctrl_last = initial_ctrl;
-
+L = Vessel.ship_dim.L;
+K_dash = Vessel.KTindex.K_dash;
+T_dash = Vessel.KTindex.T_dash;
+mpc_params = struct('Ts', h, 'N', 80, 'headingGain', 30, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
 
 MPCobj=controlClass(Flag_cont,mpc_params);
 mpc_nlp = MPCobj.init_mpc();
@@ -91,7 +93,7 @@ for i=1:N+1
 
     %End condition
     distance = norm([xout(i, 5)-wp_pos(end,1),xout(i, 6)-wp_pos(end,2)],2);
-    if distance <3
+    if distance <5
         break
     end
     
