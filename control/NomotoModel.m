@@ -11,9 +11,9 @@ function [dTurningRate, dpsi] = NomotoModel(states, RA)
 % states = [TurningRate HeadingTrue]
 % RA = RudderAngle
 %% identified model
-T1 = 20.193996887082818;
-K1 = 0.003081885184454478;
-K2 = 4.493237483452767e-06;
+T1 = 5.107025;
+K1 = 0.002253;
+K2 = 0;
 
 ROT = states(1);
 

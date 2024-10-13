@@ -9,7 +9,7 @@ n_c = 340;
 delta_c = direction * zigzag(2);
 
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
-env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
+env_set = struct("rho_water", 1000, "H", 10, "V_c", 0, "beta_c", 0);
 prop_params = struct("D_P", 1.2, "x_P_dash", -0.5, "t_P", 0.249, "w_P0", 0.493, "k_0", 0.6, "k_1", -0.3, "k_2", -0.5, "n_dot", 50);
 rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
 initial_state = [4 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
@@ -20,11 +20,12 @@ Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
 Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = initial_state;
+Vessel.Nomoto_state = [0 0]';
 ctrl_last = initial_ctrl;
 
 %% --- MAIN LOOP ---
 N = round(t_f / h); % number of samples
-xout = zeros(N + 1, 12); % Storing data
+xout = zeros(N + 1, 14); % Storing data
 delta_d = zigzag(2); % Desired heading angle amplitude
 heading_d = zigzag(1); % Desired rdder angle amplitude
 
@@ -34,6 +35,8 @@ for i = 1:N + 1
     ctrl_command = [n_c; delta_c];
     SRSP = SRSP.act_response(ctrl_last, ctrl_command, h);
     Vessel = Vessel.sensor_dynamic_model(SRSP, env_set);
+    delta = SRSP.ctrl_actual(2);
+    Vessel = Vessel.Nomoto_model(delta);
 
     if Vessel.sensor_state(6) >= heading_d * pi / 180
         delta_c = -delta_d;
@@ -45,12 +48,13 @@ for i = 1:N + 1
 
     % Euler integration
     Vessel.sensor_state = Vessel.sensor_state + Vessel.sensor_state_dot * h;
+    Vessel.Nomoto_state = Vessel.Nomoto_state + Vessel.Nomoto_state_dot * h;
 
     % Update control action
     ctrl_last = SRSP.ctrl_actual;
 
     % store data for presentation
-    xout(i, :) = [time, Vessel.sensor_state', SRSP.ctrl_actual, Vessel.sensor_state_dot(1:3)'];
+    xout(i, :) = [time, Vessel.sensor_state', SRSP.ctrl_actual, Vessel.sensor_state_dot(1:3)', Vessel.Nomoto_state'];
 end
 
 % time-series
@@ -66,6 +70,8 @@ delta = xout(:, 9);
 u_dot = xout(:, 10);
 v_dot = xout(:, 11);
 r_dot = xout(:, 12) * 180 / pi;
+r_Nomoto = xout(:, 13) * 180 / pi;
+psi_Nomoto = xout(:, 14) * 180 / pi;
 
 % plots
 figure(1)
@@ -75,7 +81,8 @@ grid, axis('equal'), xlabel('East (y/L)'), ylabel('North (x/L)'), title('Ship po
 figure(2)
 subplot(331), plot(t, u, 'r'), xlabel('time (s)'), title('u (m/s)'), grid
 subplot(332), plot(t, v, 'r'), xlabel('time (s)'), title('v (m/s)'), grid
-subplot(334), plot(t, psi, 'r'), xlabel('time (s)'), title('yaw angle \psi (deg)'), grid
+subplot(333), plot(t, r, 'r'), hold on, plot(t, r_Nomoto, 'b'), xlabel('time (s)'), title('r (deg/s)'), grid
+subplot(334), plot(t, psi, 'r'), hold on, plot(t, psi_Nomoto, 'b'), xlabel('time (s)'), title('yaw angle \psi (deg)'), grid
 subplot(335), plot(t, delta, 'r'), xlabel('time (s)'), title('rudder angle \delta (deg)'), grid
 subplot(336), plot(t, n, 'r'), xlabel('time (s)'), title('rpm'), grid
 subplot(337), plot(t, u_dot, 'r'), xlabel('time (s)'), title('u dot (m/s)'), grid

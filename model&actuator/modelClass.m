@@ -58,6 +58,8 @@ classdef modelClass
         sensor_vel_relative
         ref_state
         ref_state_dot
+        Nomoto_state
+        Nomoto_state_dot
     end
 
     % Constructor
@@ -147,7 +149,7 @@ classdef modelClass
 
             %% Calculate T index
             T_dash =- (J_z_dash + I_zG_dash) / N_r_dash;
-            % T = T_dash * U / L
+            % T = T_dash * L / U
 
             %% Calculate K index
             % Load rudder parameters
@@ -165,7 +167,7 @@ classdef modelClass
             %% Construct outputs
             obj.dyn_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'X_vv_dash', X_vv_dash, 'X_rr_dash', X_rr_dash, 'X_vr_dash', X_vr_dash, 'Y_v_dash', Y_v_dash, 'Y_vvv_dash', Y_vvv_dash, 'Y_r_dash', Y_r_dash, 'Y_rrr_dash', Y_rrr_dash, 'Y_vvr_dash', Y_vvr_dash, 'Y_vrr_dash', Y_vrr_dash, 'N_v_dash', N_v_dash, 'N_vvv_dash', N_vvv_dash, 'N_r_dash', N_r_dash, 'N_rrr_dash', N_rrr_dash, 'N_vvr_dash', N_vvr_dash, 'N_vrr_dash', N_vrr_dash);
             obj.ref_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'Y_v_dash', Y_v_dash, 'Y_r_dash', Y_r_dash, 'N_v_dash', N_v_dash, 'N_r_dash', N_r_dash);
-            obj.KTindex = struct('K_dash', K_dash, 'T_dash', T_dash);
+            obj.KTindex = struct('L', L, 'K_dash', K_dash, 'T_dash', T_dash);
 
         end
 
@@ -340,6 +342,40 @@ classdef modelClass
                                  sin(psi) * u + cos(psi) * v
                                  r
                                  ];
+
+        end
+
+        function obj = Nomoto_model(obj, delta)
+            %This function provides Nomoto model for controllers.
+            %
+            %Output Arguments:
+            %- Nomoto_state_dot (array)
+
+            %% Load states
+            r = obj.Nomoto_state(1); %rad/s
+            psi = obj.Nomoto_state(2);
+
+            %% Load model parameters
+            L = obj.KTindex.L;
+            K_dash = obj.KTindex.K_dash;
+            T_dash = obj.KTindex.T_dash;
+
+            %% Dimensionalize
+            % u = obj.sensor_state(1);
+            % v = obj.sensor_state(2);
+            % U = sqrt(u ^ 2 + v ^ 2);
+            U = 4;
+
+            %%
+            K = K_dash * U / L;
+            T = T_dash * L / U;
+
+            %%
+            r_dot =- r / T + K / T * delta * pi / 180;
+
+            obj.Nomoto_state_dot = [r_dot
+                                    r
+                                    ];
 
         end
 
