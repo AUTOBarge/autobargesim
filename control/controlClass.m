@@ -6,7 +6,7 @@ classdef controlClass
     %
     % Properties:
     %   - num_st and num_ct are reserved for the designer and represents number of states and number of controls in the MPC model, respectively.
-    %   - pid_params: Contains the PID controller gains(K_p, K_i, K_d), 
+    %   - pid_params: Contains the PID controller gains(K_p, T_i, T_d), 
     %   - mpc_params: mpc_params = struct('Ts', sampling time, 'N', Prediction horizon, 'headingGain', Q in the cost function, 'rudderGain', R in the cost function, 'max_iter', maximum iteration of the MPC solver, 'deltaMAX', maximum allowed rudder angle)
     %   - Flag_cont: To select between the PID and MPC controller
     %   type . (Set as 1 for PID and 2 for MPC controller).
