@@ -35,8 +35,10 @@ function main_gui()
 
     % Controller Parameters Input
     paramPanel = uipanel('Title', 'Controller Parameters', 'FontSize', 8, 'Position', [0.1, 0.3, 0.8, 0.15]);
-    param1Label = uicontrol(paramPanel, 'Style', 'text', 'Position', [2, 40, 150, 20], 'String', '');
-    param1Input = uicontrol(paramPanel, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 100, 'Position', [160, 40, 200, 20], 'Visible', 'off');
+    param1Label = uicontrol(paramPanel, 'Style', 'text', 'Position', [2, 50, 150, 20], 'String', '');
+    param1Input = uicontrol(paramPanel, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 80, 'Position', [160, 50, 200, 20], 'Visible', 'off');
+    addlistener(param1Input, 'Value', 'PostSet', @(src, event) updateSliderLabel2());
+    param1Labelval = uicontrol(paramPanel, 'Style', 'text', 'Position', [160, 30, 200, 20], 'String', '');
     param2Label = uicontrol(paramPanel, 'Style', 'text', 'Position', [-10, 10, 150, 20], 'String', '');
     param2Input = uicontrol(paramPanel, 'Style', 'edit', 'Position', [100, 10, 70, 25], 'Visible', 'off');
     param3Label = uicontrol(paramPanel, 'Style', 'text', 'Position', [200, 10, 100, 20], 'String', '');
@@ -63,7 +65,8 @@ function main_gui()
         set(param3Input, 'String', '22', 'Visible', 'on', 'Enable', 'on');
       elseif controllerType == 3 && strcmp(paramMode, 'Manual')  % MPC
         set(param1Label, 'String', 'Prediction Horizon:', 'Visible', 'on');
-        set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 100, 'Visible', 'on', 'Enable', 'on');
+        set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 80, 'Visible', 'on', 'Enable', 'on');
+        set(param1Labelval, 'String', 'Value: 80', 'Visible', 'on');
         set(param2Label, 'String', 'Heading Gain:', 'Visible', 'on');
         set(param2Input, 'String', '100', 'Visible', 'on', 'Enable', 'on');
         set(param3Label, 'String', 'Rudder Gain:', 'Visible', 'on');
@@ -78,7 +81,8 @@ function main_gui()
                 set(param3Input, 'String', '22', 'Visible', 'on', 'Enable', 'off');
             elseif controllerType == 3 % MPC default
                 set(param1Label, 'String', 'Prediction Horizon:', 'Visible', 'on');
-                set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 100, 'Visible', 'on', 'Enable', 'off');
+                set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 80, 'Visible', 'on', 'Enable', 'off');
+                set(param1Labelval, 'String', 'Value: 80', 'Visible', 'on');
                 set(param2Label, 'String', 'Heading Gain:', 'Visible', 'on');
                 set(param2Input, 'String', '100', 'Visible', 'on', 'Enable', 'off');
                 set(param3Label, 'String', 'Rudder Gain:', 'Visible', 'on');
@@ -107,6 +111,10 @@ function main_gui()
     set(sliderValueLabel, 'String', sprintf('Value: %.0f', sliderValue));
     end
     
+    function updateSliderLabel2()
+    sliderValue = get(param1Input, 'Value');
+    set(param1Labelval, 'String', sprintf('Value: %.0f', sliderValue));
+    end
     %% Target Vessel Plotting Section
     uicontrol('Style', 'text', 'Position', [50, 145, 400, 20], 'String', 'Plot the target vessel?', 'HorizontalAlignment', 'left');
     bgTargetVessel = uibuttongroup('Position', [0.1 0.15 0.8 0.05], 'SelectionChangedFcn', @targetVesselCallback, 'SelectedObject', []);
@@ -146,7 +154,6 @@ function main_gui()
         add_ts_vessel = get(get(bgTargetVessel, 'SelectedObject'), 'String');
         % Get Pass Angle Threshold from slider
         passAngleThreshold = get(passAngleSlider, 'Value');
-
         % Determine shape file directory and default points
             switch areaChoice
                 case 1
@@ -171,7 +178,11 @@ function main_gui()
             end
          % Collect controller parameters if custom is selected
     if strcmp(useDefaultParams, 'Manual') && controllerType ~= 1
-        param1 = str2double(get(param1Input, 'String'));
+        if controllerType == 2
+            param1 = str2double(get(param1Input, 'String'));
+        else
+            param1 = round(get(param1Input, 'Value'));
+        end
         param2 = str2double(get(param2Input, 'String'));
         param3 = str2double(get(param3Input, 'String'));
     else
@@ -216,8 +227,9 @@ function main_gui()
             endPoint = defaultEnd;
         else
             % Prompt user to provide start and end points
-            %msgbox('Please select the start and end points from the map', 'Select Points', 'help');
-            mapFig;
+            msg1=msgbox('Please select the start and end points for the vessel from the map', 'Select Points', 'help');
+            uiwait(msg1);
+            figure(mapFig);
             st = drawpoint;
             en = drawpoint;
             start_long = st.Position(1);
@@ -274,9 +286,6 @@ function main_gui()
         vessel1.actuators = actuatorClass(ship_dim, prop_params, rud_params);
 
         % Create and initialise control class object
-        pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
-        mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
-
         vessel1.control.output = [200; 0]; % Initial control
         vessel1.control.param = [];
         vessel1.err.xtetot = 0;
@@ -285,9 +294,11 @@ function main_gui()
         % Determine the controller type
         if controllerType == 1 || controllerType == 2 % PID
             Flag_cont = 1; 
+            pid_params = struct("K_p",param1,"T_i",param2,"T_d",param3,"psi_d_old",0,"error_old",0);
             vessel1.control.model = controlClass(Flag_cont,pid_params);
         elseif controllerType == 3 % MPC
             Flag_cont = 2; 
+            mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34);
             vessel1.control.model=controlClass(Flag_cont,mpc_params);
             vessel1.control.param.mpc_nlp = vessel1.control.model.init_mpc();
             vessel1.control.param.args = vessel1.control.model.constraintcreator();
@@ -311,7 +322,9 @@ if strcmpi(add_ts_vessel, 'Yes')
             endPoint = defaultEnd2;
     else
          % Prompt user to provide start and end points
-         mapFig;
+         msg2=msgbox('Please select the start and end points for the target vessel from the map', 'Select Points', 'help');
+         uiwait(msg2);
+         figure(mapFig);
          st=drawpoint;
          en=drawpoint;
          start_long = st.Position(1);
@@ -358,18 +371,18 @@ if strcmpi(add_ts_vessel, 'Yes')
     vessel2.actuators = actuatorClass(ship_dim, prop_params, rud_params);
     
     % Create and initialise control class object
-    pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
-    mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
     vessel2.err.xtetot = 0;
     vessel2.err.psi_er_tot = 0;
     if Flag_cont == 2
+        mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34);
         vessel2.control.model=controlClass(Flag_cont,mpc_params);
         vessel2.control.param.mpc_nlp = vessel2.control.model.init_mpc();
         vessel2.control.param.args = vessel2.control.model.constraintcreator();
         vessel2.control.param.next_guess = vessel2.control.model.initial_guess_creator(vertcat(vessel2.model.sensor_state(3), vessel2.model.sensor_state(6)), vessel2.control.output);
     else
+        pid_params = struct("K_p",param1,"T_i",param2,"T_d",param3,"psi_d_old",0,"error_old",0);
         vessel2.control.model = controlClass(Flag_cont,pid_params);
     end
 
@@ -386,7 +399,7 @@ stop_time =zeros(numel(vessels),1);
         %% Start the loop for simulation
         for i = 1:t_f
             if i==1
-                fprintf('The simulation has started... \n Please wait. This may take a while.')
+                fprintf('\nPlease wait. This may take a while...\n')
             end
             vessels_hold = vessels;
             for j = 1:numel(vessels_hold)

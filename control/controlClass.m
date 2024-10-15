@@ -145,7 +145,6 @@ classdef controlClass
 
             nlp = nlpsol('solver', 'ipopt', nlp_prob, opts_silent);
             
-            disp('MPC is running, please wait. This might take sometime...')
 
         end
         

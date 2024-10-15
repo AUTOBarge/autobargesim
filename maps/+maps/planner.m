@@ -65,14 +65,13 @@ classdef planner
                 disp(['Starting point: ', num2str(given_point1)]);
                 disp(['Ending point: ', num2str(given_point2)]);
             else
-                disp('The points are set outside the boundary, please reset.');
                 if ~in_polygon1
                 disp(['Starting point is outside the boundary: ', num2str(given_point1)]);
                 end
                 if ~in_polygon2
                 disp(['Ending point is outside the boundary: ', num2str(given_point2)]);
                 end
-				disp('The points are set outside the boundary.\nThe simulation will proceed with default values.');
+				fprintf('The points are set outside the boundary.\nThe simulation will proceed with the nearest points within the boundary.');
             end
 
 
