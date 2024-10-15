@@ -100,10 +100,12 @@ vessel1.model.sensor_state = initial_state;
 
 % Create and initialise actuator class objects
 vessel1.actuators = actuatorClass(ship_dim, prop_params, rud_params);
-
+L = vessel1.model.ship_dim.L;
+K_dash = vessel1.model.KTindex.K_dash;
+T_dash = vessel1.model.KTindex.T_dash;
 % Create and initialise control class object
-pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
-mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
+pid_params = struct("K_p",50,"T_i",10,"T_d",40,"psi_d_old",0,"error_old",0);
+mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
 Flag_cont = input('Select the controller (Type 1 for PID or 2 for MPC): '); 
 
 vessel1.control.output = [200; 0]; % Initial control
@@ -181,13 +183,15 @@ if strcmpi(add_ts_vessel, 'y')
     vessel2.model = modelClass(ship_dim);
     vessel2.model = vessel2.model.ship_params_calculator(env_set, rud_params);
     vessel2.model.sensor_state = initial_state;
-    
+ 
     % Create and initialise actuator class objects
     vessel2.actuators = actuatorClass(ship_dim, prop_params, rud_params);
-    
+    L = vessel2.model.ship_dim.L;
+    K_dash = vessel2.model.KTindex.K_dash;
+    T_dash = vessel2.model.KTindex.T_dash;
     % Create and initialise control class object
-    pid_params = struct("K_p",35,"T_i",33,"T_d",22,"psi_d_old",0,"error_old",0);
-    mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
+    pid_params = struct("K_p",50,"T_i",10,"T_d",40,"psi_d_old",0,"error_old",0);
+    mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
     vessel2.err.xtetot = 0;

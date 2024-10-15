@@ -58,11 +58,11 @@ function main_gui()
 
       if controllerType == 2 && strcmp(paramMode, 'Manual') % PID
         set(param1Label, 'String', 'K_p:', 'Visible', 'on');
-        set(param1Input, 'Style', 'edit', 'String', '35', 'Visible', 'on', 'Enable', 'on');
+        set(param1Input, 'Style', 'edit', 'String', '50', 'Visible', 'on', 'Enable', 'on');
         set(param2Label, 'String', 'T_i:', 'Visible', 'on');
-        set(param2Input, 'String', '33', 'Visible', 'on', 'Enable', 'on');
+        set(param2Input, 'String', '10', 'Visible', 'on', 'Enable', 'on');
         set(param3Label, 'String', 'T_d:', 'Visible', 'on');
-        set(param3Input, 'String', '22', 'Visible', 'on', 'Enable', 'on');
+        set(param3Input, 'String', '40', 'Visible', 'on', 'Enable', 'on');
       elseif controllerType == 3 && strcmp(paramMode, 'Manual')  % MPC
         set(param1Label, 'String', 'Prediction Horizon:', 'Visible', 'on');
         set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 80, 'Visible', 'on', 'Enable', 'on');
@@ -74,11 +74,11 @@ function main_gui()
       elseif strcmp(paramMode, 'Default') % Default mode
             if controllerType == 2 % PID default
                 set(param1Label, 'String', 'K_p:', 'Visible', 'on');
-                set(param1Input, 'Style', 'edit', 'String', '35', 'Visible', 'on', 'Enable', 'off');
+                set(param1Input, 'Style', 'edit', 'String', '50', 'Visible', 'on', 'Enable', 'off');
                 set(param2Label, 'String', 'T_i:', 'Visible', 'on');
-                set(param2Input, 'String', '33', 'Visible', 'on', 'Enable', 'off');
+                set(param2Input, 'String', '10', 'Visible', 'on', 'Enable', 'off');
                 set(param3Label, 'String', 'T_d:', 'Visible', 'on');
-                set(param3Input, 'String', '22', 'Visible', 'on', 'Enable', 'off');
+                set(param3Input, 'String', '40', 'Visible', 'on', 'Enable', 'off');
             elseif controllerType == 3 % MPC default
                 set(param1Label, 'String', 'Prediction Horizon:', 'Visible', 'on');
                 set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 80, 'Visible', 'on', 'Enable', 'off');
@@ -188,9 +188,9 @@ function main_gui()
     else
         % Use default values
         if controllerType == 1 || controllerType == 2 % PID default
-            param1 = 35; % K_p
-            param2 = 33; % T_i
-            param3 = 22; % T_d
+            param1 = 50; % K_p
+            param2 = 10; % T_i
+            param3 = 40; % T_d
         elseif controllerType == 3 % MPC default
             param1 = 80; % Prediction Horizon
             param2 = 100; % Heading Gain
@@ -284,7 +284,9 @@ function main_gui()
         
         % Create and initialise actuator class objects
         vessel1.actuators = actuatorClass(ship_dim, prop_params, rud_params);
-
+        L = vessel1.model.ship_dim.L;
+        K_dash = vessel1.model.KTindex.K_dash;
+        T_dash = vessel1.model.KTindex.T_dash;
         % Create and initialise control class object
         vessel1.control.output = [200; 0]; % Initial control
         vessel1.control.param = [];
@@ -298,7 +300,7 @@ function main_gui()
             vessel1.control.model = controlClass(Flag_cont,pid_params);
         elseif controllerType == 3 % MPC
             Flag_cont = 2; 
-            mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34);
+            mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
             vessel1.control.model=controlClass(Flag_cont,mpc_params);
             vessel1.control.param.mpc_nlp = vessel1.control.model.init_mpc();
             vessel1.control.param.args = vessel1.control.model.constraintcreator();
@@ -366,17 +368,20 @@ if strcmpi(add_ts_vessel, 'Yes')
     vessel2.model = modelClass(ship_dim);
     vessel2.model = vessel2.model.ship_params_calculator(env_set, rud_params);
     vessel2.model.sensor_state = initial_state;
-    
+
     % Create and initialise actuator class objects
     vessel2.actuators = actuatorClass(ship_dim, prop_params, rud_params);
-    
+    L = vessel2.model.ship_dim.L;
+    K_dash = vessel2.model.KTindex.K_dash;
+    T_dash = vessel2.model.KTindex.T_dash;
+
     % Create and initialise control class object
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
     vessel2.err.xtetot = 0;
     vessel2.err.psi_er_tot = 0;
     if Flag_cont == 2
-        mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34);
+        mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
         vessel2.control.model=controlClass(Flag_cont,mpc_params);
         vessel2.control.param.mpc_nlp = vessel2.control.model.init_mpc();
         vessel2.control.param.args = vessel2.control.model.constraintcreator();
