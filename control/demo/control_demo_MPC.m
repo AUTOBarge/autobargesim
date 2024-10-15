@@ -29,10 +29,10 @@ SRSP = actuatorClass(ship_dim, prop_params, rud_params);
 Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = initial_state;
 ctrl_last = initial_ctrl;
-
-
-% State [u v r x y psi delta n], Controls [n_c delta_c]
-mpc_params = struct('Ts', h, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34);
+L = Vessel.ship_dim.L;
+K_dash = Vessel.KTindex.K_dash;
+T_dash = Vessel.KTindex.T_dash;
+mpc_params = struct('Ts', h, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
 Flag_cont = 2;
 psi_d= pi/4;
 r_d = psi_d - Vessel.sensor_state(6)/h;

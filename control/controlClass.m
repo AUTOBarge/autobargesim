@@ -76,8 +76,11 @@ classdef controlClass
             states = SX.sym('states', num_states, 1);
             controls = SX.sym('controls', num_controls, 1);
 
-         
-            [ode_l1, ode_l2] = NomotoModel(states, controls);
+            L = obj.mpc_params.L;
+            K_dash = obj.mpc_params.K_dash;
+            T_dash = obj.mpc_params.T_dash;
+   
+            [ode_l1, ode_l2] = NomotoModel(states, controls, L, K_dash, T_dash);
             ode_l = vertcat(ode_l1,ode_l2);
             f_dy_l = Function('f_dy_l',{states, controls},{ode_l},{'x0','u0'},{'ODE'});
             

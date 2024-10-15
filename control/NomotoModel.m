@@ -1,4 +1,4 @@
-function [dTurningRate, dpsi] = NomotoModel(states, RA)
+function [dTurningRate, dpsi] = NomotoModel(states, RA, L, K_dash, T_dash)
 %% [dTurningRate, dpsi] = NomotoModel(states, RA)
 %% Description:
 % this function provides the Nomoto model to be used in the LowlevelMPC
@@ -11,12 +11,11 @@ function [dTurningRate, dpsi] = NomotoModel(states, RA)
 % states = [TurningRate HeadingTrue]
 % RA = RudderAngle
 %% identified model
-T1 = 20.193996887082818;
-K1 = 0.003081885184454478;
-K2 = 4.493237483452767e-06;
-
+U = 2.5; % This should be replaced by U= sqrt(u^2+v^2)
+T1 = T_dash*(L/U);
+K1 = K_dash*(U/L);
 ROT = states(1);
 
-dTurningRate = -ROT / T1 + K1 * RA / T1 + K2;
+dTurningRate = -ROT / T1 + K1 * RA / T1;
 dpsi = ROT;
 end
