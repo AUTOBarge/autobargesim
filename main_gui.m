@@ -104,7 +104,7 @@ function main_gui()
     addlistener(passAngleSlider, 'Value', 'PreSet', @(src, event) updateSliderLabel());
 
     % Slider value label
-    sliderValueLabel = uicontrol('Style', 'text', 'Position', [150, 160, 100, 20], 'String', 'Value: 100', 'HorizontalAlignment', 'center');
+    sliderValueLabel = uicontrol('Style', 'text', 'Position', [200, 160, 100, 20], 'String', 'Value: 100', 'HorizontalAlignment', 'center');
     
     function updateSliderLabel()
     sliderValue = get(passAngleSlider, 'Value');
