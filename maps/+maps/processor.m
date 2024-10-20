@@ -90,7 +90,6 @@ classdef processor
             % plot method
             for idx = 1:length(obj.pgon_memory)
                 maps.processor.plotGeometries(obj.pgon_memory(idx));
-                title('Use the Pan, Zoom-in, and Zoom-out buttons to browse the map')
             end
         end
     end
