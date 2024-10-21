@@ -102,7 +102,7 @@ classdef guidance
             % in meter
             nominal_time = nominal_dist/u_d;
             if norm([traj_x(end)-wp_pos(end,1),traj_y(end)-wp_pos(end,2)])>threshold
-                fprintf("Ship have not reached the destionation yet. Considering set the simulation greater or equal " + nominal_time + "s");
+                fprintf("Ship has not reached the destionation yet.\n Setting the simulation time greater than or equal to" + nominal_time + "s \n");
             end
         end
     end

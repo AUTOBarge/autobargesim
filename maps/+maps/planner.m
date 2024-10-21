@@ -72,16 +72,16 @@ classdef planner
                     disp(['Ending point: ', num2str(given_point2)]);
                 elseif (in_polygon_land1 || in_polygon_land2)
                     % Points are outside polygon but inside polygon_land
-                    disp('The points are set outside the boundary, please reset.');
                     if ~in_polygon1
                         disp(['Starting point is outside the boundary: ', num2str(given_point1)]);
                     end
                     if ~in_polygon2
                         disp(['Ending point is outside the boundary: ', num2str(given_point2)]);
                     end
+                    fprintf('The selected points are outside the boundary.\nThe simulation will proceed with valid points.');
                 else
                     % Points are outside both polygon and polygon_land
-                    error('The selected points are outside the map. Please choose points within the map or Default points');
+                    error('The selected points are outside the map. Please choose points within the map or default points');
              end
 
 
