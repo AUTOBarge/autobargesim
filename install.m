@@ -1,9 +1,9 @@
-function install_absim()
+function install()
 %To install the toolbox, simply run this matlab file or type 'install_absim' in the MATLAB command window.
-    fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
-	fprintf('AUTOBargeSim: MATLAB toolbox for the design and analysis of the Guidance, Navigation and Control System for autonomous inland vessels.\n');
-	fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
-	
+    fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
+    fprintf('AUTOBargeSim: MATLAB toolbox for the design and analysis of \nthe guidance and control system for autonomous inland vessels.\n');
+    fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
+
     folders = {'control', 'guidance', 'maps', 'mission_planner', 'model&actuator','colav'};
     
     currentFolder = pwd;
@@ -17,10 +17,10 @@ function install_absim()
         fprintf('Folders and subfolders have been added to the MATLAB path.\n');
         
         % Adding third-party package (Casadi)
-         casadiInstalled = input('Would you like to install the Casadi package? (Casadi is required for using some features of the AUTOBargeSim toolbox) (y/n): ', 's');
+         casadiInstalled = input('Would you like to install the Casadi package? \n (Casadi is required for using some features of the AUTOBargeSim toolbox) (y/n): ', 's');
          if strcmpi(casadiInstalled, 'y')
-			casadiPath = fullfile(currentFolder,'prerequisites','casadi');
-			addpath(casadiPath);
+			casadiPath = fullfile(currentFolder,'prerequisites','casadi','casadi-3.6.4-windows64-matlab2018b');
+			addpath(genpath(casadiPath));
 			fprintf('Casadi has been added to the MATLAB path.\n');
          else
             fprintf('Proceeding without installing the Casadi package... .\n');
