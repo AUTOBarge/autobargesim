@@ -7,6 +7,7 @@ AUTOBargeSim: MATLAB® toolbox for the design and analysis of the guidance and c
 **Dependencies**
 
 -Casadi
+
 -MATLAB Control System Toolbox
 
 **Installation**
