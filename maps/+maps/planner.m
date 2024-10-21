@@ -41,6 +41,7 @@ classdef planner
         given_point2
         all_points
         polygon
+        polygon_land
     end
     
      methods
@@ -60,19 +61,28 @@ classdef planner
             % Check if the given points are inside the polygon
             in_polygon1=obj.is_point_inside_polygon(given_point1);
             in_polygon2=obj.is_point_inside_polygon(given_point2);
+
+                % Check if the points are inside the polygon_land
+            in_polygon_land1 = obj.is_point_inside_polygon_land(given_point1);
+            in_polygon_land2 = obj.is_point_inside_polygon_land(given_point2);
+
             if in_polygon1 && in_polygon2
-                disp('Starting point and ending point set successfully');
-                disp(['Starting point: ', num2str(given_point1)]);
-                disp(['Ending point: ', num2str(given_point2)]);
-            else
-                if ~in_polygon1
-                disp(['Starting point is outside the boundary: ', num2str(given_point1)]);
-                end
-                if ~in_polygon2
-                disp(['Ending point is outside the boundary: ', num2str(given_point2)]);
-                end
-				fprintf('The points are set outside the boundary.\nThe simulation will proceed with the nearest points within the boundary.');
-            end
+                    disp('Starting point and ending point set successfully');
+                    disp(['Starting point: ', num2str(given_point1)]);
+                    disp(['Ending point: ', num2str(given_point2)]);
+                elseif (in_polygon_land1 || in_polygon_land2)
+                    % Points are outside polygon but inside polygon_land
+                    disp('The points are set outside the boundary, please reset.');
+                    if ~in_polygon1
+                        disp(['Starting point is outside the boundary: ', num2str(given_point1)]);
+                    end
+                    if ~in_polygon2
+                        disp(['Ending point is outside the boundary: ', num2str(given_point2)]);
+                    end
+                else
+                    % Points are outside both polygon and polygon_land
+                    error('The selected points are outside the map. Please choose points within the map or Default points');
+             end
 
 
             [obj, start_segment, end_segment, start_point, end_point] = obj.findNearestPoints(given_point1, given_point2);
@@ -145,11 +155,13 @@ classdef planner
 %             xlim([x_min x_max]);
 %             ylim([y_min y_max]);
 %             Scale from the starting point
-            vector = obj.given_point2 - obj.given_point1;
-            x_min = obj.given_point1(1) -0.015;
-            x_max = obj.given_point1(1) + 0.015;  
-            y_min = obj.given_point1(2) -0.015;
-            y_max = obj.given_point1(2) + 0.015;  
+            
+            x_center = obj.path_points(1,1);
+            y_center = obj.path_points(1,2);
+            x_min = x_center - 0.015;
+            x_max = x_center + 0.015;
+            y_min = y_center - 0.015;
+            y_max = y_center + 0.015;
             xlim([x_min x_max]);
             ylim([y_min y_max]);
             hold off;
@@ -188,6 +200,10 @@ end
             index2 = find(strcmp({obj.pgon_memory.name}, 'depare'));
             polygon_data = obj.pgon_memory(index2).polygons;
             obj.polygon = polygon_data.Vertices; 
+
+            index3 = find(strcmp({obj.pgon_memory.name}, 'lndare'));
+            polygon_data_land = obj.pgon_memory(index3).polygons;
+            obj.polygon_land = polygon_data_land.Vertices; 
 
             x = lines_data(1, :);
             y = lines_data(2, :);
@@ -446,6 +462,10 @@ end
 
         function in_polygon = is_point_inside_polygon(obj, given_point)
             in_polygon = isinterior(polyshape(obj.polygon), given_point(1), given_point(2));
+        end
+
+        function in_polygon_land = is_point_inside_polygon_land(obj, given_point)
+            in_polygon_land = isinterior(polyshape(obj.polygon_land), given_point(1), given_point(2));
         end
     end
 end
