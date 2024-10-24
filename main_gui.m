@@ -564,14 +564,14 @@ ship_body = [-L/2, -B/2; L/2, -B/2; L/2, B/2; -L/2, B/2];
 ship_nose = [L/2, -B/2;L/2 + tr, 0; L/2, B/2];
 
 %Animate ship motion
-%lat_ref = lat(1); % Reference latitude
+lat_ref = lat(1); % Reference latitude
 meters_per_deg_lat = 111320;
-%meters_per_deg_lon = 111320 * cos(deg2rad(lat_ref));
+meters_per_deg_lon = 111320 * cos(deg2rad(lat_ref));
 
 %Function to transform the ship vertices
 %transform_vertices = @(vertices, angle, x, y) (vertices * [cosd(angle), sind(angle); -sind(angle), cosd(angle)]) + [x, y];
 transform_vertices_geo = @(vertices, angle, lat, lon) ...
-    (vertices * [cos(angle), sin(angle); -sin(angle), cos(angle)] * (1 / meters_per_deg_lat)) + [lon, lat];
+    (vertices * [cos(angle), sin(angle); -sin(angle), cos(angle)] * diag([1/meters_per_deg_lon, 1/meters_per_deg_lat])) + [lon, lat];
 
 % Initial transformation and plotting
 transformed_body_os = transform_vertices_geo(ship_body, psi_rad(1), lat(1), lon(1));
