@@ -1,17 +1,29 @@
-function install()
+function install_absim()
 %To install the toolbox, simply run this matlab file or type 'install_absim' in the MATLAB command window.
+    clear;
+    clc;
+
     fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
     fprintf('AUTOBargeSim: MATLAB toolbox for the design and analysis of \nthe guidance and control system for autonomous inland vessels.\n');
     fprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n');
 
-    folders = {'control', 'guidance', 'maps', 'mission_planner', 'model&actuator','colav'};
+    folders = {'system', 'control', 'guidance', 'maps', 'mission_planner', 'model&actuator','colav'};
     
     currentFolder = pwd;
-    
+
+    if ~isempty(absimroot)
+        fprintf('WARNING: A previous version of AUTOBargeSim has been detected. The uninstallation of the previous version will be carried out automatically before proceeding with the new installation.\n');
+        uninstall_absim;
+    end
+
     % Adding the folders and subfolders to the MATLAB path
     try
+        fprintf('========= Installing AUTOBargeSim =========\n');
+        fprintf('Adding root: %s\n', absimroot);
+        addpath(absimroot);
         for i = 1:length(folders)
             folderPath = fullfile(currentFolder, folders{i});
+            fprintf('Adding path: %s\n', folderPath);
             addpath(genpath(folderPath));
         end
         fprintf('Folders and subfolders have been added to the MATLAB path.\n');
@@ -40,6 +52,8 @@ function install()
         else
             error('Failed to save the path changes. You may need administrator rights.');
         end
+
+        fprintf('========= Installation Successful! =========\n');
         
     catch ME
         % Error handling
