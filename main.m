@@ -70,6 +70,9 @@ plan.plot_path(2);
 
 %
 wp_wgs84 = plan.path_points;
+if isnan(wp_wgs84(end,1))
+    wp_wgs84 =wp_wgs84(1:end-1,:);
+end
 wgs84 = wgs84Ellipsoid;
 lon0 = wp_wgs84(1,1);
 lat0 = wp_wgs84(1,2);
@@ -244,7 +247,6 @@ for i = 1:t_f
     
         % Call LOS algorithm
         [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1);
-        
         if strcmpi(add_ts_vessel, 'y')
             [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
                                                                                                chi, U, ...
@@ -284,8 +286,8 @@ for i = 1:t_f
         % Checking if OS reaching the last wp:
         x_cur=os.model.sensor_state(4);
         y_cur=os.model.sensor_state(5);
-        distance = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
-        if distance < 3
+        d_threshold = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
+        if d_threshold < 20
             STOP(j)= 1; % Rise the stop flag for this vessel
             stop_time(j)=i; % Record the stop time
         end
