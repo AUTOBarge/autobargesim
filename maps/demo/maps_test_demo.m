@@ -24,4 +24,4 @@ pl = maps.planner(p.pgon_memory);
 pl = pl.plan_path(given_point1, given_point2);
 
 % Draw Path
-pl.plot_path(2);
+pl.plot_path(1);
