@@ -6,13 +6,13 @@ AUTOBargeSim: MATLAB® toolbox for the design and analysis of the guidance and c
 
 **Dependencies**
 
--Casadi
-
 -MATLAB Control System Toolbox
+
+-Casadi: https://web.casadi.org/
 
 **Installation**
 
-To install the toolbox, simply run the file 'install.m' in MATLAB.
+To install the toolbox, simply run the file 'install_absim.m' in MATLAB and follow the instructions in the MATLAB command window.
 
 **Citing**
 
