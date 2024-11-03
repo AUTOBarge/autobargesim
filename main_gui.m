@@ -174,9 +174,6 @@ function main_gui()
                     defaultEnd = [];
                     defaultStart2 = []; 
                     defaultEnd2 = [];
-                    if isempty(defaultStart) || isempty(defaultEnd)|| isempty(defaultStart2)|| isempty(defaultEnd2)
-                    error('No default start and end points exist for custom maps. Please select the points on the map.')
-                    end
             end
          % Collect controller parameters if custom is selected
     if strcmp(useDefaultParams, 'Manual') && controllerType ~= 1
@@ -225,6 +222,9 @@ function main_gui()
         
         % Determine start and end points
         if strcmpi(useDefaultPoints, 'Use default points')
+            if isempty(defaultStart) || isempty(defaultEnd)|| isempty(defaultStart2)|| isempty(defaultEnd2)
+                    error('No default start and end points exist for custom maps. Please re-run and select the points on the map.')
+            end
             startPoint = defaultStart;
             endPoint = defaultEnd;
         else
