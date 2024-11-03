@@ -94,12 +94,6 @@ classdef LOSguidance < guidance
                 chi_r = atan2(-(self.K_p * e), 1) - asin(x(2)/x_los(4) + 1e-4);
             end
             chi_d = utils.wrap_angle_to_pmpi(alpha + chi_r);
-            max_change =pi/90;
-            if utils.wrap_angle_to_pmpi(chi_d - x_los(3)) > max_change
-                chi_d = x_los(3)+max_change;
-            elseif utils.wrap_angle_to_pmpi(chi_d - x_los(3)) < -max_change
-                chi_d = x_los(3)-max_change;
-            end
             U_d = wp_speed(wp_idx);
         end
     end

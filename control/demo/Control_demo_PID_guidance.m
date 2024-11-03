@@ -16,7 +16,7 @@ h = 0.1; % sample time (sec)
 
 los = LOSguidance();
 % Predefined waypoints: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
-wp_pos = [0 0; 50 50; 170 170;340 350;480 580];
+wp_pos = [0 0; 50 50; 170 170;340 350;480 580; 480 950];
 % Predefined surge speed at each waypoint segment: wp_speed = [U_1;...;U_n]
 wp_speed = ones(length(wp_pos),1);
 wp_idx = 1;
@@ -29,7 +29,7 @@ rud_params = struct("C_R", 1.6, "B_R", 1.4, "l_R_dash", -0.71, "t_R", 0.387, "al
 states = [0,0,0,0,0,deg2rad(45)]'; % Initial state [u v r x y psi] in column
 initial_ctrl = [200 0]; % Initial control
 %K_p: Controller P-gain, T_i: Controller integration time, T_d: Controller derivative time
-pid_params = struct("K_p",50,"T_i",10,"T_d",40,"psi_d_old",0,"error_old",0);
+pid_params = struct("K_p",75,"T_i",75,"T_d",30,"psi_d_old",0,"error_old",0);
 Flag_cont = 1;
 xtetot = 0;
 psi_er_tot = 0;

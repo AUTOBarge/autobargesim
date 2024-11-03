@@ -17,7 +17,7 @@ h = 0.2; % sample time (sec)
 
 los = LOSguidance();
 % Predefined waypoints: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
-wp_pos = [0 0; 50 50; 170 170;340 420;500 680];
+wp_pos = [0 0; 50 50; 170 170;340 350;480 580; 480 950];
 % Predefined surge speed at each waypoint segment: wp_speed = [U_1;...;U_n]
 wp_speed = ones(length(wp_pos),1);
 wp_idx = 1;

@@ -21,7 +21,7 @@ rud_params = struct("C_R", 1.6, "B_R", 1.4, "l_R_dash", -0.71, "t_R", 0.387, "al
 initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
 initial_ctrl = [0 0]; % Initial control
 %K_p: Controller P-gain, T_i: Controller integration time, T_d: Controller derivative time
-pid_params = struct("K_p",50,"T_i",10,"T_d",40,"psi_d_old",0,"error_old",0);
+pid_params = struct("K_p",75,"T_i",75,"T_d",30,"psi_d_old",0,"error_old",0);
 Flag_cont = 1;
 psi_d=pi/4;
 %% Initialization

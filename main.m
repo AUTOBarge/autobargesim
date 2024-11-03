@@ -39,7 +39,7 @@ process = maps.processor(desirename, shapeFileDirectory);
 process.plot();
 
 %% Initialisation
-t_f = 8000; % final simulation time (sec)
+t_f = 2e4; % final simulation time (sec)
 h = 0.2; % sample time (sec)
 
 %% Vessel 1
@@ -107,7 +107,7 @@ L = vessel1.model.ship_dim.L;
 K_dash = vessel1.model.KTindex.K_dash;
 T_dash = vessel1.model.KTindex.T_dash;
 % Create and initialise control class object
-pid_params = struct("K_p",50,"T_i",10,"T_d",40,"psi_d_old",0,"error_old",0);
+pid_params = struct("K_p",75,"T_i",75,"T_d",30,"psi_d_old",0,"error_old",0);
 mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
 Flag_cont = input('Select the controller (Type 1 for PID or 2 for MPC): '); 
 
@@ -193,7 +193,7 @@ if strcmpi(add_ts_vessel, 'y')
     K_dash = vessel2.model.KTindex.K_dash;
     T_dash = vessel2.model.KTindex.T_dash;
     % Create and initialise control class object
-    pid_params = struct("K_p",50,"T_i",10,"T_d",40,"psi_d_old",0,"error_old",0);
+    pid_params = struct("K_p",75,"T_i",75,"T_d",30,"psi_d_old",0,"error_old",0);
     mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
