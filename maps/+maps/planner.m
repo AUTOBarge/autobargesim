@@ -136,6 +136,11 @@ classdef planner
             scatter_handle = scatter(obj.path_points(:, 1), obj.path_points(:, 2), 10, 'k', 'filled');
             % Store the depth data in the 'UserData' property
             set(scatter_handle, 'UserData', obj.path_depths);
+        
+            datacursormode off;
+            
+            dcm_obj = datacursormode(gcf);
+            set(dcm_obj, 'UpdateFcn', @obj.myupdatefcn);
 
                 title('Map Area with Navigation Data');
                 xlabel('X Coordinate');
@@ -171,10 +176,6 @@ classdef planner
             xlim([x_min x_max]);
             ylim([y_min y_max]);
 
-    datacursormode off;
-    
-    dcm_obj = datacursormode(gcf);
-    set(dcm_obj, 'UpdateFcn', @obj.myupdatefcn);
 
             hold off;
         end
@@ -567,7 +568,7 @@ end
             function [nan_path_depths, nan_path_points] = segmentDepthRecognition_ForStartAndEnd(obj, nan_segment, nan_path)
             % Perform smoothing and depth discrimination on the start points and end points. Output the smoothed points and depth.
             segment_name = obj.segments{nan_segment}.region;
-            disp(['Start segment belongs to: ', segment_name]);
+%             disp(['Start segment belongs to: ', segment_name]);
 
             nan_path_points=obj.removeDuplicatePoints_path(nan_path);
             nan_path_points=obj.smoothPoints_path(nan_path_points);
@@ -634,7 +635,7 @@ end
                                 
                                 nan_path_depths(idx) = depth_value;
                                 
-                                disp(['Point at index ', num2str(idx), ' of the start path belongs to a polygon with depth: ', num2str(depth_value)]);
+%                                 disp(['Point at index ', num2str(idx), ' of the start path belongs to a polygon with depth: ', num2str(depth_value)]);
                             end
                         end
                    end
