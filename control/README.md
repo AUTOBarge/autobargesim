@@ -1,4 +1,4 @@
-# {controlClass}
+# {Control Module}
 
 ## About
 
