@@ -1,4 +1,4 @@
-# Maps
+# Maps Module
 
 ## About
  This code will help you separate the .shp part you want from the .000 file, and assist you in calling and visualizing the .shp in Matlab. 
