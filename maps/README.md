@@ -23,5 +23,4 @@ to be added
 
 ## Contact
 Email: zhongbi.luo@kuleuven.be,
-dhanika.mahipala@km.kongsberg.com,
 hoang.a.tran@ntnu.no
