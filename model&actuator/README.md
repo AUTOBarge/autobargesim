@@ -1,4 +1,4 @@
-# modelClass
+# Model Module
 
 ## About
 
@@ -45,7 +45,7 @@ None
     - Output Arguments:
        obj.ref_state_dot (array (6, 1))
 
-# actuatorClass
+# Actuator Module
 
 ## About
 
