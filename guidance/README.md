@@ -1,4 +1,4 @@
-# Guidance
+# Guidance Module
 
 ## About
 The objective of this class is to employ a guidance controller to generate reference course angles and speed commands for a vessel.
