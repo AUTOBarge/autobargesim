@@ -12,7 +12,7 @@
 
 ## Dependencies
 - **maps/demo/0002shp_tool/0002shp.py**: Python version >= 3.6, Install GDAL Package.
-- **maps/demo/maps_test_demo.m**: N/A
+- **maps/demo/maps_test_demo.m**: Mapping Toolbox, Statistics and Machine Learning Toolbox.
 
 ## Contact
 Email: [Zhongbi Luo](mailto:zhongbi.luo@kuleuven.be)
