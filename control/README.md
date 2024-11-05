@@ -1,4 +1,4 @@
-# {Control Module}
+# Control Module
 
 ## About
 
