@@ -28,4 +28,4 @@ pl = pl.plan_path(given_point1, given_point2);
 %         1: All information
 %         2: Only waypoints, start point, end point, without node, best
 %         path and depth
-pl.plot_path(1);
+pl.plot_path(2);
