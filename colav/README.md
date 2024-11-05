@@ -1,4 +1,4 @@
-# Collision Avoidance (COLAV)
+# Collision Avoidance (COLAV) Module
 
 ## About
 The objective of this class is to employ reference a collision avoidance algorithm for obstacle avoidance.
