@@ -1,7 +1,7 @@
 # Maps test demo
 
 ## Description
-The 'maps.processor' class will be used to display the desired area to the user. The 'maps.planner' class will fit a path based on the 'water axis' for the input start and end points within that area, providing the relevant waypoints.
+The 'maps.processor' class will be used to display the desired area to the user. The 'maps.planner' class will fit a path based on the 'water axis' for the input start and end points within that area, providing the relevant waypoints and depths.
 
 ## Dependencies
 The following toolboxes are required:
@@ -11,7 +11,6 @@ The following toolboxes are required:
 ## Setup
 Follow the steps below to run this demo:
 - Add +maps as your 'run' class.
-- Replace 'pwd' with the path of the folder where your .shp files are stored.
 - Enter the category you want to extract in the input bar Desirename. The code will classify according to the name of the .shp file, and eventually classify all .shp files of the same category name into one pgon_memory
 > Note：
 
@@ -19,8 +18,8 @@ Follow the steps below to run this demo:
 
 > Please select connected .000 files as input, otherwise the correct route cannot be determined.
 ``` Matlab
-addpath( 'pwd'); % Set the +maps (namespace) path
-folder = 'pwd';  % Set the folder path for reading .shp files
+addpath(folder); % Set the +maps (namespace) path
+folder = append(cd,'\.shp\Gent area'); % Set the folder path for reading .shp files
 desirename=["depare","bridge","wtwaxs","lndare"]; %give the desirename %"notmrk"
 ```
 - 'maps.processor(desirename, folder)' creates an instance of the 'maps.processor' class with the parameters 'desirename' and 'folder'.
@@ -44,10 +43,10 @@ pl = maps.planner(p.pgon_memory);
 ```Matlab
 pl = pl.plan_path(given_point1, given_point2);
 ```
-- This line calls the 'plot_path' method of the 'maps.planner' instance (pl) with the '1'. The argument 1 indicates that the method should plot the full graph with all relevant information, including nodes, edges, waypoints, the start point, the end point, and the best path. 
+- This line calls the plot_path method of the maps.planner instance (pl) with the argument 1. The argument 1 indicates that the method should plot the full graph with all relevant information, including nodes, edges, waypoints, the start point, the end point, the best path, and depth information displayed at the points. The argument 2 indicates that this method only displays the waypoints, start point, and end point, without nodes, best path, and depth.
 ```Matlab
 pl.plot_path(1);
 ```
 ## Results
-![ENC_graph_part](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/part.png)
-![ENC_graph](https://github.com/AUTOBarge/simulator-dev/blob/way_point_zbl/maps/img/all.png)
+![ENC_map_part](https://github.com/AUTOBarge/simulator-dev/blob/main/maps/img/depth.png)
+![ENC_graph](https://github.com/AUTOBarge/simulator-dev/blob/main/maps/img/graph.png)
