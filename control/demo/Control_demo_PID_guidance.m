@@ -55,7 +55,7 @@ for i=1:N+1
     wp_idx = los.find_active_wp_segment(wp_pos, Vessel.sensor_state', wp_idx);
     
     % Call LOS algorithm
-    [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, Vessel.sensor_state', wp_idx,1, chi_d_prev);
+    [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, Vessel.sensor_state', wp_idx,1, chi_d_prev, i);
     psi_d=chi;
     chi_d_prev = chi;
     % Calculate the control command

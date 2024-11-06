@@ -39,7 +39,7 @@ process = maps.processor(desirename, shapeFileDirectory);
 process.plot();
 
 %% Initialisation
-t_f = 2e4; % final simulation time (sec)
+t_f = 1e5; % final simulation time (sec)
 h = 0.2; % sample time (sec)
 
 %% Vessel 1
@@ -90,7 +90,7 @@ vessel1.wp.speed = 100*ones(length(wp_pos),1);
 vessel1.wp.idx = 1;
 initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
 vessel1.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
-[chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1, vessel1.chi_d_prev);
+[chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1, vessel1.chi_d_prev, 0);
 initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
 vessel1.chi_d_prev = chi;
 % Create and initialise model class objects
@@ -177,7 +177,7 @@ if strcmpi(add_ts_vessel, 'y')
     vessel2.wp.speed = 100*ones(length(wp_pos),1);
     vessel2.wp.idx = 1;
     vessel2.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
-    [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1, vessel2.chi_d_prev);
+    [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1, vessel2.chi_d_prev, 0);
     initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
     vessel2.chi_d_prev = chi;
     % Create and initialise model class objects
@@ -248,7 +248,7 @@ for i = 1:t_f
         os.wp.idx = os.guidance.find_active_wp_segment(os.wp.pos, os.model.sensor_state', os.wp.idx);
     
         % Call LOS algorithm
-        [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1, os.chi_d_prev);
+        [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1, os.chi_d_prev,i);
         os.chi_d_prev = chi;
         if strcmpi(add_ts_vessel, 'y')
             [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
@@ -261,7 +261,7 @@ for i = 1:t_f
         if Flag_cont == 2 % Implement the MPC controller
             r_d = chi - psi;
             [ctrl_command_MPC, os.control.param.next_guess, os.control.model] = os.control.model.LowLevelMPCCtrl(vertcat(os.model.sensor_state, os.control.output), chi, r_d, os.control.param.args, os.control.param.next_guess, os.control.param.mpc_nlp);
-            ctrl_command = [340; ctrl_command_MPC];
+            ctrl_command = [250; ctrl_command_MPC];
         else  % Implement the PID controller
             [ctrl_command, os.control.model] = os.control.model.LowLevelPIDCtrl(chi, r, psi, h);
         end

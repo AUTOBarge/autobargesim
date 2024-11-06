@@ -202,7 +202,7 @@ classdef controlClass
                 T_d = obj.pid_params.T_d;
                 T_i = obj.pid_params.T_i;
 				delta_c = -K_p*(error_psi+ T_d*(r-r_d)+(1/T_i)*sum_error); %Command rudder angle
-				n_c = 350; 
+				n_c = 250; 
                 obj.pid_params.psi_d_old=psi_d;
 				obj.pid_params.error_old=error_psi;
                 ctrl_command=[n_c,delta_c];

@@ -52,7 +52,7 @@ next_guess = MPCobj.initial_guess_creator(vertcat(Vessel.sensor_state(3),Vessel.
 
 %% --- MAIN LOOP ---
 N = round(t_f / h); % number of samples
-n_c = 340; % defined command for the RPM of the propellers
+n_c = 250; % defined command for the RPM of the propellers
 
 for i=1:N+1
     time = (i - 1) * h;
@@ -64,7 +64,7 @@ for i=1:N+1
     wp_idx = los.find_active_wp_segment(wp_pos, Vessel.sensor_state', wp_idx);
     
     % Call LOS algorithm
-    [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, Vessel.sensor_state', wp_idx,1, chi_d_prev);
+    [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, Vessel.sensor_state', wp_idx,1, chi_d_prev, i);
     psi_d=chi;
     chi_d_prev = chi;
     r_d = psi_d - states(6);
