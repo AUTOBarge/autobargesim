@@ -12,7 +12,7 @@
 clc; clear all; close all;
 %% Setting
 t_f = 500; % final simulation time (sec)
-h = 0.1; % sample time (sec)
+h = 0.2; % sample time (sec)
 
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
 env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", pi);
@@ -21,7 +21,7 @@ rud_params = struct("C_R", 1.6, "B_R", 1.4, "l_R_dash", -0.71, "t_R", 0.387, "al
 initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
 initial_ctrl = [0 0]; % Initial control
 %K_p: Controller P-gain, T_i: Controller integration time, T_d: Controller derivative time
-pid_params = struct("K_p",75,"T_i",75,"T_d",30,"psi_d_old",0,"error_old",0);
+pid_params = struct("K_p",120,"T_i",20,"T_d",10,"psi_d_old",0,"error_old",0);
 Flag_cont = 1;
 psi_d=pi/4;
 %% Initialization

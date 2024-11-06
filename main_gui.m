@@ -58,11 +58,11 @@ function main_gui()
 
       if controllerType == 2 && strcmp(paramMode, 'Manual') % PID
         set(param1Label, 'String', 'K_p:', 'Visible', 'on');
-        set(param1Input, 'Style', 'edit', 'String', '50', 'Visible', 'on', 'Enable', 'on');
+        set(param1Input, 'Style', 'edit', 'String', '120', 'Visible', 'on', 'Enable', 'on');
         set(param2Label, 'String', 'T_i:', 'Visible', 'on');
-        set(param2Input, 'String', '10', 'Visible', 'on', 'Enable', 'on');
+        set(param2Input, 'String', '20', 'Visible', 'on', 'Enable', 'on');
         set(param3Label, 'String', 'T_d:', 'Visible', 'on');
-        set(param3Input, 'String', '40', 'Visible', 'on', 'Enable', 'on');
+        set(param3Input, 'String', '10', 'Visible', 'on', 'Enable', 'on');
       elseif controllerType == 3 && strcmp(paramMode, 'Manual')  % MPC
         set(param1Label, 'String', 'Prediction Horizon:', 'Visible', 'on');
         set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 80, 'Visible', 'on', 'Enable', 'on');
@@ -74,11 +74,11 @@ function main_gui()
       elseif strcmp(paramMode, 'Default') % Default mode
             if controllerType == 2 % PID default
                 set(param1Label, 'String', 'K_p:', 'Visible', 'on');
-                set(param1Input, 'Style', 'edit', 'String', '50', 'Visible', 'on', 'Enable', 'off');
+                set(param1Input, 'Style', 'edit', 'String', '120', 'Visible', 'on', 'Enable', 'off');
                 set(param2Label, 'String', 'T_i:', 'Visible', 'on');
-                set(param2Input, 'String', '10', 'Visible', 'on', 'Enable', 'off');
+                set(param2Input, 'String', '20', 'Visible', 'on', 'Enable', 'off');
                 set(param3Label, 'String', 'T_d:', 'Visible', 'on');
-                set(param3Input, 'String', '40', 'Visible', 'on', 'Enable', 'off');
+                set(param3Input, 'String', '10', 'Visible', 'on', 'Enable', 'off');
             elseif controllerType == 3 % MPC default
                 set(param1Label, 'String', 'Prediction Horizon:', 'Visible', 'on');
                 set(param1Input, 'Style', 'slider', 'Min', 80, 'Max', 300, 'Value', 80, 'Visible', 'on', 'Enable', 'off');
@@ -187,9 +187,9 @@ function main_gui()
     else
         % Use default values
         if controllerType == 1 || controllerType == 2 % PID default
-            param1 = 50; % K_p
-            param2 = 10; % T_i
-            param3 = 40; % T_d
+            param1 = 120; % K_p
+            param2 = 20; % T_i
+            param3 = 10; % T_d
         elseif controllerType == 3 % MPC default
             param1 = 80; % Prediction Horizon
             param2 = 100; % Heading Gain
@@ -272,9 +272,10 @@ function main_gui()
         vessel1.wp.speed = 100*ones(length(wp_pos),1);
         vessel1.wp.idx = 1;
         initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
-        [chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1);
+        vessel1.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
+        [chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1, vessel1.chi_d_prev);
         initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
-
+        vessel1.chi_d_prev = chi;
         % Create and initialise model and actuator class objects
         ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
         env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
@@ -359,9 +360,10 @@ if strcmpi(add_ts_vessel, 'Yes')
     vessel2.wp.pos = wp_pos;
     vessel2.wp.speed = 100*ones(length(wp_pos),1);
     vessel2.wp.idx = 1;
-    [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1);
+    vessel2.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
+    [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1, vessel2.chi_d_prev);
     initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
-    
+    vessel2.chi_d_prev = chi;
     % Create and initialise model class objects
     ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
     env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
@@ -431,8 +433,8 @@ stop_time =zeros(numel(vessels),1);
                 os.wp.idx = os.guidance.find_active_wp_segment(os.wp.pos, os.model.sensor_state', os.wp.idx);
     
                 % Call LOS algorithm
-                [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1);
-        
+                [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1, os.chi_d_prev);
+                os.chi_d_prev = chi;
                 if strcmpi(add_ts_vessel, 'Yes')
                 [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
                                                                                                chi, U, ...
@@ -472,8 +474,8 @@ stop_time =zeros(numel(vessels),1);
             % Checking if OS reaching the last wp:
             x_cur=os.model.sensor_state(4);
             y_cur=os.model.sensor_state(5);
-            distance = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
-            if distance < 3
+            d_threshold = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
+            if d_threshold < 20
                 STOP(j)= 1; % Rise the stop flag for this vessel
                 stop_time(j)=i; % Record the stop time
             end

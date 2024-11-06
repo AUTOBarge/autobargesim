@@ -41,9 +41,9 @@ classdef LOSguidance < guidance
             losgObj = losgObj@guidance('R_a', p.Results.R_a, 'pass_angle_threshold', p.Results.pass_angle_threshold);
             losgObj.K_p = p.Results.K_p;
         end
-        function [chi_d, U_d] = compute_LOSRef(self, wp_pos, wp_speed, x, wp_idx, angle_out)
+        function [chi_d, U_d] = compute_LOSRef(self, wp_pos, wp_speed, x, wp_idx, angle_out, chi_d_prev)
             % Compute reference course angles and speeds using the LOS guidance
-            % law.
+            % law with saturation on chi_d to limit rapid changes.
             % [chi_d, U_d] = compute_LOSRef(wp_pos, wp_speed, x, wp_idx, angle_out)
             %           
             % INPUTS:
@@ -72,7 +72,7 @@ classdef LOSguidance < guidance
             validateattributes(wp_speed, {'double'}, {'size', [NaN, 1]})
             validateattributes(x, {'double'}, {'size', [1, 6]})
             validateattributes(wp_idx, {'double'}, {'scalar'})
-            
+            chi_rate_max = pi/180; % Maximum rate of course update = 1 degree per time step
             wp_pos = wp_pos';
             wp_speed = wp_speed';
             
@@ -93,7 +93,15 @@ classdef LOSguidance < guidance
             elseif angle_out == 2
                 chi_r = atan2(-(self.K_p * e), 1) - asin(x(2)/x_los(4) + 1e-4);
             end
-            chi_d = utils.wrap_angle_to_pmpi(alpha + chi_r);
+            chi_d_raw = utils.wrap_angle_to_pmpi(alpha + chi_r);
+            
+            % Apply rate limiter to chi_d
+            chi_d_rate = (chi_d_raw-chi_d_prev);
+            if abs(chi_d_rate)> chi_rate_max
+                chi_d_rate = sign(chi_d_rate)* chi_rate_max;
+            end
+            chi_d = chi_d_prev + chi_d_rate ;
+
             U_d = wp_speed(wp_idx);
         end
     end

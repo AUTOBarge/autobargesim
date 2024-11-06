@@ -17,10 +17,11 @@ h = 0.2; % sample time (sec)
 
 los = LOSguidance();
 % Predefined waypoints: wp_pos =[x_1 y_1; x_2 y_2;...; x_n y_n]
-wp_pos = [0 0; 50 50; 170 170;340 350;480 580; 480 950];
+wp_pos = [0 0; 50 50; 170 170;340 350;480 580; 580 950];
 % Predefined surge speed at each waypoint segment: wp_speed = [U_1;...;U_n]
 wp_speed = ones(length(wp_pos),1);
 wp_idx = 1;
+chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
 
 %% Model, environment and controller parameters
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
@@ -63,8 +64,9 @@ for i=1:N+1
     wp_idx = los.find_active_wp_segment(wp_pos, Vessel.sensor_state', wp_idx);
     
     % Call LOS algorithm
-    [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, Vessel.sensor_state', wp_idx,1);
+    [chi, U] = los.compute_LOSRef(wp_pos, wp_speed, Vessel.sensor_state', wp_idx,1, chi_d_prev);
     psi_d=chi;
+    chi_d_prev = chi;
     r_d = psi_d - states(6);
     [ctrl_command_MPC, next_guess,~] = MPCobj.LowLevelMPCCtrl(states, psi_d, r_d, args, next_guess, mpc_nlp);
     
@@ -93,7 +95,7 @@ for i=1:N+1
 
     %End condition
     distance = norm([xout(i, 5)-wp_pos(end,1),xout(i, 6)-wp_pos(end,2)],2);
-    if distance <5
+    if distance <10
         break
     end
     

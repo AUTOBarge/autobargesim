@@ -89,9 +89,10 @@ vessel1.wp.pos = wp_pos;
 vessel1.wp.speed = 100*ones(length(wp_pos),1);
 vessel1.wp.idx = 1;
 initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
-[chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1);
+vessel1.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
+[chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1, vessel1.chi_d_prev);
 initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
-
+vessel1.chi_d_prev = chi;
 % Create and initialise model class objects
 ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
 env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
@@ -107,7 +108,7 @@ L = vessel1.model.ship_dim.L;
 K_dash = vessel1.model.KTindex.K_dash;
 T_dash = vessel1.model.KTindex.T_dash;
 % Create and initialise control class object
-pid_params = struct("K_p",75,"T_i",75,"T_d",30,"psi_d_old",0,"error_old",0);
+pid_params = struct("K_p",120,"T_i",20,"T_d",10,"psi_d_old",0,"error_old",0);
 mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
 Flag_cont = input('Select the controller (Type 1 for PID or 2 for MPC): '); 
 
@@ -175,9 +176,10 @@ if strcmpi(add_ts_vessel, 'y')
     vessel2.wp.pos = wp_pos;
     vessel2.wp.speed = 100*ones(length(wp_pos),1);
     vessel2.wp.idx = 1;
-    [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1);
+    vessel2.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
+    [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1, vessel2.chi_d_prev);
     initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
-    
+    vessel2.chi_d_prev = chi;
     % Create and initialise model class objects
     ship_dim = struct("scale", 1, "disp", 505, "L", 38.5, "L_R", 3.85, "B", 5.05, "d", 2.8, "C_b", 0.94, "C_p", 0.94, "S", 386.2, "u_0", 4.1, "x_G", 0);
     env_set = struct("rho_water", 1000, "H", 5, "V_c", 0.1, "beta_c", 0);
@@ -193,7 +195,7 @@ if strcmpi(add_ts_vessel, 'y')
     K_dash = vessel2.model.KTindex.K_dash;
     T_dash = vessel2.model.KTindex.T_dash;
     % Create and initialise control class object
-    pid_params = struct("K_p",75,"T_i",75,"T_d",30,"psi_d_old",0,"error_old",0);
+    pid_params = struct("K_p",120,"T_i",20,"T_d",10,"psi_d_old",0,"error_old",0);
     mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.0009, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
     vessel2.control.output = [200; 0]; % Initial control
     vessel2.control.param = [];
@@ -246,7 +248,8 @@ for i = 1:t_f
         os.wp.idx = os.guidance.find_active_wp_segment(os.wp.pos, os.model.sensor_state', os.wp.idx);
     
         % Call LOS algorithm
-        [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1);
+        [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1, os.chi_d_prev);
+        os.chi_d_prev = chi;
         if strcmpi(add_ts_vessel, 'y')
             [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
                                                                                                chi, U, ...
