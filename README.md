@@ -6,6 +6,8 @@ AUTOBargeSim: MATLAB® toolbox for the design and analysis of the guidance and c
 
 # Dependencies
 
+- [Mapping Toolbox](https://de.mathworks.com/products/mapping.html)
+- [Statistics and Machine Learning Toolbox](https://se.mathworks.com/products/statistics.html)
 - [MATLAB Control System Toolbox](https://www.mathworks.com/products/control.html)
 - [Casadi](https://web.casadi.org/)
 
