@@ -15,7 +15,7 @@ function main_gui()
     imshow(logo, 'Parent', axesHandle);
     %% Shape Files Section
     uicontrol('Style', 'text', 'Position', [50, 520, 400, 20], 'String', 'Select the map area:', 'HorizontalAlignment', 'left');
-    areaPopup = uicontrol('Style', 'popupmenu', 'String', {'Albert canal', 'Leuven area', 'Specify directory with shape files ...'}, 'Position', [50, 500, 400, 25]);
+    areaPopup = uicontrol('Style', 'popupmenu', 'String', {'Albert canal', 'Gent area', 'Specify directory with shape files ...'}, 'Position', [50, 500, 400, 25]);
     %% Start and End Points Section
     %bgPoints = uipanel('Title', 'Own Vessel Start and End Points', 'FontSize', 8,'Position', [0.1 0.59 0.8 0.07]);
     uicontrol('Style', 'text', 'Position', [50, 475, 400, 20], 'String', 'Own Vessel Start and End Points', 'HorizontalAlignment', 'left');
@@ -163,11 +163,11 @@ function main_gui()
                     defaultStart2 = [4.74202, 51.18]; 
                     defaultEnd2 = [4.72593, 51.182];
                 case 2
-                    shapeFileDirectory = fullfile(pwd, 'maps', 'demo', '.shp', 'Leuven area');
-                    defaultStart = [4.48571, 51.0806];  % Default values for Leuven area
-                    defaultEnd = [4.52222, 51.106];
-                    defaultStart2 = [4.50013, 51.089]; 
-                    defaultEnd2 = [4.48463, 51.0799];
+                    shapeFileDirectory = fullfile(pwd, 'maps', 'demo', '.shp', 'Gent area');
+                    defaultStart = [3.65876, 51.066];  % Default values for Gent area
+                    defaultEnd = [3.70328, 51.0254];
+                    defaultStart2 = [3.67599, 51.0502]; 
+                    defaultEnd2 = [3.65813, 51.0679];
                 otherwise
                     shapeFileDirectory = uigetdir(pwd, 'Select the directory containing shape files');
                     defaultStart = [];  % No defaults for custom files

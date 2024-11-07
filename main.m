@@ -11,16 +11,16 @@ usePackageShapeFiles = input('Do you want to use the maps included in the packag
     
 if strcmpi(usePackageShapeFiles, 'y')
     % Prompt user to choose the area
-    areaChoice = input('Choose the area\n 1 for Albert canal or,\n 2 for Leuven area: ');
+    areaChoice = input('Choose the area\n 1 for Albert canal or,\n 2 for Gent area: ');
     switch areaChoice
         case 1
         shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Albert canal');
         defaultStart = [4.4266966, 51.2383286];  % Default values for Albert canal
         defaultEnd = [4.5088209, 51.2361481];   
         case 2
-        shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Leuven area');
-        defaultStart = [0, 0];  % Default values for Leuven area
-        defaultEnd = [0, 0];
+        shapeFileDirectory = fullfile(pwd, 'maps','demo','.shp', 'Gent area');
+        defaultStart = [3.65876, 51.066];  % Default values for Gent area
+        defaultEnd = [3.70328, 51.0254];
         otherwise
         error('Invalid choice. Please run the program again and select a valid area.');
     end
