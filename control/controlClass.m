@@ -1,5 +1,5 @@
-classdef controlClass
-% ClassName: controlClass
+classdef control
+% ClassName: control
     %
     % Description:
     %   This class provides the control commands for high-level or low-level vessel control.
