@@ -300,11 +300,11 @@ function main_gui()
         if controllerType == 1 || controllerType == 2 % PID
             Flag_cont = 1; 
             pid_params = struct("K_p",param1,"T_i",param2,"T_d",param3,"psi_d_old",0,"error_old",0);
-            vessel1.control.model = controlClass(Flag_cont,pid_params);
+            vessel1.control.model = control(Flag_cont,pid_params);
         elseif controllerType == 3 % MPC
             Flag_cont = 2; 
             mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
-            vessel1.control.model=controlClass(Flag_cont,mpc_params);
+            vessel1.control.model=control(Flag_cont,mpc_params);
             vessel1.control.param.mpc_nlp = vessel1.control.model.init_mpc();
             vessel1.control.param.args = vessel1.control.model.constraintcreator();
             vessel1.control.param.next_guess = vessel1.control.model.initial_guess_creator(vertcat(vessel1.model.sensor_state(3), vessel1.model.sensor_state(6)), vessel1.control.output);
