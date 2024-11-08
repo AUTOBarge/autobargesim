@@ -38,7 +38,7 @@ classdef control
     % Constructor
     methods
 
-        function obj = controlClass(Flag_cont,varargin)
+        function obj = control(Flag_cont,varargin)
             % Initialize the object
             if Flag_cont==1 && nargin==1
                 obj.pid_params = struct("K_p",400,"T_i",10,"T_d",50,"psi_d_old",0,"error_old",0);

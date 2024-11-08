@@ -117,12 +117,12 @@ vessel1.control.param = [];
 vessel1.err.xtetot = 0;
 vessel1.err.psi_er_tot = 0;
 if Flag_cont == 2
-    vessel1.control.model=controlClass(Flag_cont,mpc_params);
+    vessel1.control.model=control(Flag_cont,mpc_params);
     vessel1.control.param.mpc_nlp = vessel1.control.model.init_mpc();
     vessel1.control.param.args = vessel1.control.model.constraintcreator();
     vessel1.control.param.next_guess = vessel1.control.model.initial_guess_creator(vertcat(vessel1.model.sensor_state(3), vessel1.model.sensor_state(6)), vessel1.control.output);
 elseif Flag_cont == 1
-    vessel1.control.model = controlClass(Flag_cont,pid_params);
+    vessel1.control.model = control(Flag_cont,pid_params);
 else
     error('Invalid Input. Please run main.m again');
 end
