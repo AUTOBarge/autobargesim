@@ -5,6 +5,7 @@
 %
 % Author:
 %   Abhishek Dhyani.
+%   AmirReza Haqshenas M.
 % Date:
 %	11/10/2024
 % Version:
@@ -40,7 +41,7 @@ SRSP = actuatorClass(ship_dim, prop_params, rud_params);
 Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = states;
 
-PIDobj=controlClass(Flag_cont,pid_params);
+PIDobj=control(Flag_cont,pid_params);
 ctrl_last = initial_ctrl;
 
 %% --- MAIN LOOP ---

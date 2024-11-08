@@ -5,10 +5,12 @@
 %
 % Author:
 %   Abhishek Dhyani.
+%   AmirReza Haqshenas M.
 % Date:
 %	11/10/2024
 % Version:
 % 	1.0
+% 
 clc; clear all; close all;
 %% Setting
 t_f = 500; % final simulation time (sec)
@@ -27,7 +29,7 @@ psi_d=pi/4;
 %% Initialization
 Vessel = modelClass(ship_dim);
 SRSP = actuatorClass(ship_dim, prop_params, rud_params);
-PIDobj=controlClass(Flag_cont,pid_params);
+PIDobj=control(Flag_cont,pid_params);
 Vessel = Vessel.ship_params_calculator(env_set, rud_params);
 Vessel.sensor_state = initial_state;
 ctrl_last = initial_ctrl;

@@ -38,7 +38,7 @@ psi_d= pi/4;
 r_d = psi_d - Vessel.sensor_state(6)/h;
 
 
-MPCobj=controlClass(Flag_cont,mpc_params);
+MPCobj=control(Flag_cont,mpc_params);
 mpc_nlp = MPCobj.init_mpc();
 args = MPCobj.constraintcreator();
 next_guess = MPCobj.initial_guess_creator(vertcat(Vessel.sensor_state(3),Vessel.sensor_state(6)), ctrl_last);
