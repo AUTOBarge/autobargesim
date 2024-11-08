@@ -210,7 +210,7 @@ if strcmpi(add_ts_vessel, 'y')
         vessel2.control.model = controlClass(Flag_cont,pid_params);
     end
 
-    % Initialize colision avoidance
+    % Initialize collision avoidance
     vessel2.colav.alg = sbmpc(10, h);
     vessel2.colav.param = [1; 0]; % chi_m, U_m
 end
