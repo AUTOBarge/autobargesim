@@ -1,5 +1,5 @@
 function uninstall_absim()
-    folders = {'system', 'control', 'guidance', 'maps', 'mission_planner', 'model&actuator','colav'};
+    folders = {'system', 'control', 'guidance', 'maps', 'model&actuator','colav'};
     
     currentFolder = pwd;
     
