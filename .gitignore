@@ -1,6 +1,3 @@
-# Ignore AIS/data/aisData.csv since it is larger than 100M
-aisData.csv
-
 # Ignore MATLAB temporary files
 *.asv
 
