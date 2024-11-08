@@ -6,7 +6,7 @@ This class provides the control commands for high-level or low-level vessel cont
 
 ## Dependencies
 
-For executing the MPC controller, the Casadi tool for MATLAB is required (https://web.casadi.org/).
+For executing the MPC controller, the [Casadi tool for MATLAB](https://web.casadi.org/) is required .
 
 ## Properties
  - num_st and num_ct are reserved for the desiner and represents number of states and number of controls in the MPC model, respectively.
