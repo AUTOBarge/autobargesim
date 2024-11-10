@@ -434,7 +434,7 @@ stop_time =zeros(numel(vessels),1);
     
                 % Call LOS algorithm
                 [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1, os.chi_d_prev, i);
-                os.chi_d_prev = chi;
+                
                 if strcmpi(add_ts_vessel, 'Yes')
                 [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
                                                                                                chi, U, ...
@@ -442,7 +442,7 @@ stop_time =zeros(numel(vessels),1);
                                                                                                os.colav.param(2), ...
                                                                                                ts_sensor_states);
                 end
-            
+            os.chi_d_prev = chi;
             if Flag_cont == 2 % Implement the MPC controller
             r_d = chi - psi;
             [ctrl_command_MPC, os.control.param.next_guess, os.control.model] = os.control.model.LowLevelMPCCtrl(vertcat(os.model.sensor_state, os.control.output), chi, r_d, os.control.param.args, os.control.param.next_guess, os.control.param.mpc_nlp);
