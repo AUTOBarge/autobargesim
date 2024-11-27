@@ -3,7 +3,7 @@ clc
 
 % Starting
 disp('======== RELEASE LOG ========')
-disp('Initializing the relase process...');
+disp('Initializing the release process...');
 
 % Checklist
 questions = {
