@@ -164,10 +164,10 @@ function main_gui()
                     defaultEnd2 = [4.72593, 51.182];
                 case 2
                     shapeFileDirectory = fullfile(pwd, 'maps', 'demo', '.shp', 'Gent area');
-                    defaultStart = [3.65876, 51.066];  % Default values for Gent area
-                    defaultEnd = [3.70328, 51.0254];
-                    defaultStart2 = [3.67599, 51.0502]; 
-                    defaultEnd2 = [3.65813, 51.0679];
+                    defaultStart = [3.65819, 51.0804];  % Default values for Gent area
+                    defaultEnd = [3.68499, 51.035];
+                    defaultStart2 = [3.66624, 51.0573]; 
+                    defaultEnd2 = [3.65781, 51.0759];
                 otherwise
                     shapeFileDirectory = uigetdir(pwd, 'Select the directory containing shape files');
                     defaultStart = [];  % No defaults for custom files
