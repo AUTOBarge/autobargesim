@@ -70,7 +70,7 @@ function main_gui()
         set(param2Label, 'String', 'Heading Gain:', 'Visible', 'on');
         set(param2Input, 'String', '100', 'Visible', 'on', 'Enable', 'on');
         set(param3Label, 'String', 'Rudder Gain:', 'Visible', 'on');
-        set(param3Input, 'String', '0.0009', 'Visible', 'on', 'Enable', 'on');
+        set(param3Input, 'String', '0.005', 'Visible', 'on', 'Enable', 'on');
       elseif strcmp(paramMode, 'Default') % Default mode
             if controllerType == 2 % PID default
                 set(param1Label, 'String', 'K_p:', 'Visible', 'on');
@@ -86,7 +86,7 @@ function main_gui()
                 set(param2Label, 'String', 'Heading Gain:', 'Visible', 'on');
                 set(param2Input, 'String', '100', 'Visible', 'on', 'Enable', 'off');
                 set(param3Label, 'String', 'Rudder Gain:', 'Visible', 'on');
-                set(param3Input, 'String', '0.0009', 'Visible', 'on', 'Enable', 'off');
+                set(param3Input, 'String', '0.005', 'Visible', 'on', 'Enable', 'off');
             end
         else
             set(param1Label, 'Visible', 'off');
@@ -193,7 +193,7 @@ function main_gui()
         elseif controllerType == 3 % MPC default
             param1 = 80; % Prediction Horizon
             param2 = 100; % Heading Gain
-            param3 = 0.0009; % Rudder Gain
+            param3 = 0.005; % Rudder Gain
         end
     end
 
