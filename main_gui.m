@@ -251,6 +251,9 @@ function main_gui()
         plan.plot_path(2);
         
         %%
+        if isnan(plan.path_points(end,1))
+            plan.path_points(end,:)=[endPoint(1), endPoint(2)];
+        end
         wp_wgs84 = plan.path_points;
         wgs84 = wgs84Ellipsoid;
         lon0 = wp_wgs84(1,1);
