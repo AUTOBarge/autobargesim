@@ -16,7 +16,7 @@ To install the toolbox, simply run the file 'install_absim.m' in MATLAB and foll
 # Citing
 If you find this toolbox useful in your work, please consider citing the following work:
 
-AUTOBargeSim: MATLAB toolbox for the design and analysis of the guidance and control system for autonomous inland vessels (Submitted). Dhyani et al. (2025). 
+Dhyani et al. (2025). AUTOBargeSim: MATLAB toolbox for the design and analysis of the guidance and control system for autonomous inland vessels (Submitted). https://arxiv.org/pdf/2503.21594.
 
 # Contributors (Equally):
 Abhishek Dhyani, Amirreza Haqshenas Mojaveri, Chengqian Zhang, Dhanika Mahipala, Hoang Anh Tran, Yan-Yun Zhang, Zhongbi Luo.
