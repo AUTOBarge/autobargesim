@@ -456,10 +456,12 @@ stop_time =zeros(numel(vessels),1);
     
                 % Call LOS algorithm
                 [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1, os.chi_d_prev, i);
-                
+                chi_los = chi;
+                U_los = U;
+
                 if has_ts
                     % Calculate the minimum distance to the target ship and adjust
-                    % the control update stride accordingly. 
+                    % the control update stride accordingly.
                     own_xy = [os.model.sensor_state(4), os.model.sensor_state(5)];
                     d_min_ts = min(vecnorm(ts_sensor_states(:, 4:5) - own_xy, 2, 2));
                     react_distance = 8 * os.colav.alg.tuning_param.D_CLOSE_;
@@ -469,17 +471,17 @@ stop_time =zeros(numel(vessels),1);
                         effective_stride = os.colav.alg.update_stride;
                     end
                     if mod(i, effective_stride) == 1
-                        [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
-                                                                                                       chi, U, ...
+                        [chi, U, os.colav.param(1), os.colav.param(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
+                                                                                                       chi_los, U_los, ...
                                                                                                        os.colav.param(1), ...
                                                                                                        os.colav.param(2), ...
                                                                                                        ts_sensor_states);
                     else
-                        chi = utils.wrap_angle_to_pmpi(chi + os.colav.parameters(1));
-                        U = U * os.colav.parameters(2);
+                        chi = utils.wrap_angle_to_pmpi(chi_los + os.colav.param(1));
+                        U = U_los * os.colav.param(2);
                     end
                 end
-            os.chi_d_prev = chi;
+            os.chi_d_prev = chi_los;
             if Flag_cont == 2 % Implement the MPC controller
             r_d = utils.wrap_angle_to_pmpi(chi - psi);
             [ctrl_command_MPC, os.control.param.next_guess, os.control.model] = os.control.model.LowLevelMPCCtrl(vertcat(os.model.sensor_state, os.control.output), chi, r_d, os.control.param.args, os.control.param.next_guess, os.control.param.mpc_nlp);
