@@ -3,3 +3,6 @@
 
 # Ignore CSV files (to prevent accidentally commiting a large file)
 *.csv
+maps/demo/.shp/Albert canal/processed_data.mat
+maps/demo/.shp/Gent area/processed_data.mat
+IMPROVEMENTS.md

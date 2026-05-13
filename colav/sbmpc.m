@@ -2,7 +2,6 @@ classdef sbmpc < colav
     properties (Constant, Hidden)
         default_D_CLOSE_ = 20 % distance for an nearby obstacle [m]
         default_D_SAFE_ = 10 % distance of safety zone [m]
-        default_D_INIT_ = sbmpc.default_D_CLOSE_ * 3
 
         default_KAPPA_ = 7.0 % cost function parameter
         default_PHI_AH_ = deg2rad(68.5) % colregs angle - ahead [deg]
@@ -25,8 +24,13 @@ classdef sbmpc < colav
         default_U_ca_ = [0, 0.5, 1.0]  % control behaviors - speed factor
     end
 
-    properties 
+    properties
         tuning_param % tuning parameters
+        boundary_xy_enu      % depare boundary, decimated, as Nx2 vertices with NaN row separators (used by inpolygon land check)
+        land_penalty = 1e6   % cost added when a candidate trajectory leaves depare
+        land_check_stride = 5  % test every Nth ownship_traj sample for in-water
+        update_stride = 5      % main loop calls run_sbmpc once every Nth simulation step
+        boundary_decim_stride = 2 % keep every Nth depare boundary vertex for the per-step inpolygon land check
     end
     
     methods
@@ -50,7 +54,6 @@ classdef sbmpc < colav
             % tuning parameters
             addParameter(p, 'D_CLOSE_', sbmpc.default_D_CLOSE_, @(x) validateattributes(x, {'double'}, {'scalar'}));
             addParameter(p, 'D_SAFE_', sbmpc.default_D_SAFE_, @(x) validateattributes(x, {'double'}, {'scalar'}));
-            addParameter(p, 'D_INIT_', sbmpc.default_D_INIT_, @(x) validateattributes(x, {'double'}, {'scalar'}));
             addParameter(p, 'KAPPA_', sbmpc.default_KAPPA_, @(x) validateattributes(x, {'double'}, {'scalar'}));
             addParameter(p, 'PHI_AH_', sbmpc.default_PHI_AH_, @(x) validateattributes(x, {'double'}, {'scalar'}));
             addParameter(p, 'PHI_OT_', sbmpc.default_PHI_OT_, @(x) validateattributes(x, {'double'}, {'scalar'}));
@@ -77,7 +80,6 @@ classdef sbmpc < colav
             sbmpcObj.tuning_param = struct(...
                 'D_CLOSE_', p.Results.D_CLOSE_,...
                 'D_SAFE_', p.Results.D_SAFE_,...
-                'D_INIT_', p.Results.D_INIT_,...
                 'KAPPA_', p.Results.KAPPA_,...
                 'PHI_AH_', p.Results.PHI_AH_,...
                 'PHI_OT_', p.Results.PHI_OT_,...
@@ -95,6 +97,36 @@ classdef sbmpc < colav
                 'Chi_ca_', p.Results.Chi_ca_,...
                 'U_ca_', p.Results.U_ca_);
         end
+        function self = set_depare_polyshape(self, polyshape_wgs84, lat0, lon0)
+            % Cache the depare polygon in the same ENU frame as the
+            % ownship state. 
+            if isempty(polyshape_wgs84) || isempty(polyshape_wgs84.Vertices)
+                self.boundary_xy_enu = zeros(0, 2);
+                return;
+            end
+            verts_lonlat = polyshape_wgs84.Vertices;
+            n = size(verts_lonlat, 1);
+            verts_enu = nan(n, 2);
+            wgs84 = wgs84Ellipsoid;
+            for k = 1:n
+                if any(isnan(verts_lonlat(k, :)))
+                    continue;
+                end
+                [xE, yN, ~] = geodetic2enu(verts_lonlat(k, 2), verts_lonlat(k, 1), 0, lat0, lon0, 0, wgs84);
+                verts_enu(k, :) = [xE, yN];
+            end
+
+            % Decimate the boundary vertices to speed up the inpolygon land check
+            stride = max(1, self.boundary_decim_stride);
+            nan_mask = any(isnan(verts_enu), 2);
+            keep_mask = (mod((1:n)', stride) == 1) | nan_mask;
+            decimated = verts_enu(keep_mask, :);
+            warn_state = warning('off', 'MATLAB:polyshape:repairedBySimplify');
+            clean_poly = polyshape(decimated);
+            warning(warn_state);
+            self.boundary_xy_enu = clean_poly.Vertices;
+        end
+
         function [chi_c, U_c, chi_m, U_m] = run_sbmpc(self, x, chi_d, U_d, chi_m_last, U_m_last, x_ts)
             % Calculate the modifications for the course angle and speed
             % commands from the guidance controller.
@@ -133,35 +165,52 @@ classdef sbmpc < colav
             Chi_ca_ = self.tuning_param.Chi_ca_;
             U_ca_ = self.tuning_param.U_ca_;
 
+            % Pre-compute target-ship trajectories once.
+            num_ts = size(x_ts, 1);
+            ts_trajs = cell(num_ts, 1);
+            for idx = 1:num_ts
+                state_ts = [x_ts(idx, 4), x_ts(idx, 5), x_ts(idx, 6), sqrt(x_ts(idx, 1)^2 + x_ts(idx, 2)^2)];
+                ts_trajs{idx} = self.calcVesselTraj(state_ts, state_ts(3:4), self.dt, n_samples);
+            end
+
             cost_k_min = inf;
             for i = 1:length(Chi_ca_)
                 for j = 1:length(U_ca_)
                     cost_i_max = -1;
-                    
+
                     ownship_traj = self.calcVesselTraj(state, [chi_d + Chi_ca_(i), U_d * U_ca_(j)], self.dt, n_samples);
-                   
-                    num_ts = numel(x_ts(:, 1));
+
+                    land_cost = 0;
+                    
+                    if ~isempty(self.boundary_xy_enu) && (Chi_ca_(i) ~= 0 || U_ca_(j) ~= 1)
+                        idx_check = 1:self.land_check_stride:size(ownship_traj, 1);
+                        in_water = inpolygon(ownship_traj(idx_check, 1), ownship_traj(idx_check, 2), ...
+                                             self.boundary_xy_enu(:, 1), self.boundary_xy_enu(:, 2));
+                        if ~all(in_water)
+                            land_cost = self.land_penalty;
+                        end
+                    end
+
                     for idx = 1:num_ts
-                        state_ts = [x_ts(idx, 4), x_ts(idx, 5), x_ts(idx, 6), sqrt(x_ts(idx, 1)^2 + x_ts(idx, 2)^2)]; % x = [x, y, chi, U]
-                        targetship_traj = self.calcVesselTraj(state_ts, state_ts(3:4), self.dt, n_samples);
-                        
+                        targetship_traj = ts_trajs{idx};
+
                         [~, ~, ~, ~, ~, ~, colregs_cost] = self.calc_cost_COLREGS(ownship_traj, targetship_traj, n_samples);
                         [~, ~, collision_cost] = self.calc_cost_collision(ownship_traj, targetship_traj, self.dt, n_samples);
-        
+
                         cost_i = max(colregs_cost + collision_cost);
-            
+
                         if cost_i > cost_i_max
                             cost_i_max = cost_i;
                         end
                     end
 
                     F = self.calc_cost_maneuvering(chi_d, U_d, Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last);
-        
-                    tot_cost = cost_i_max + F;
-        
+
+                    tot_cost = cost_i_max + F + land_cost;
+
                     if tot_cost < cost_k_min
                         cost_k_min = tot_cost;
-                        chi_m = Chi_ca_(i); 
+                        chi_m = Chi_ca_(i);
                         U_m = U_ca_(j);
                     end
                 end

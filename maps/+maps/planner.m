@@ -1,62 +1,128 @@
 classdef planner
     % ClassName: maps.planner
     %
-    % Descirption:
+    % Description:
     % The planner class is used to generate paths within a polygon area.
-    % This class includes functionalities to randomly generate start and end points,
-    % build a graph, compute the best path and way points, and plot.
+    % This class includes functionalities to randomly generate start and
+    % end points, build a graph, compute the best path and waypoints,
+    % and plot. The Dijkstra graph used for shortest-path search is
+    % weighted with a bank-clearance penalty so the optimiser prefers
+    % wide-channel routes; after planning, each interior corner is
+    % replaced with a circular arc of radius R_min tangent to the
+    % adjacent segments so the controller is never given a corner the
+    % vessel cannot physically execute (arcs that would cut a corner
+    % over land are rejected and the original corner is kept);
+    % finally, every waypoint on the resulting path is audited against
+    % the fairway boundary and the user is warned when the planned
+    % route runs the vessel within (B/2 + safety_margin) of the bank.
     %
     % Properties:
     %   - pgon_memory: Structure storing shp.file data
     %   - segments: Cell array of segment data
-    %   - G: Graph object representing the connectivity between segments
+    %   - G: Weighted graph object representing the connectivity between segments
     %   - unique_coords: Matrix of unique coordinates of the nodes in graph G
     %   - edges: List of edges of the graph
+    %   - edge_weights: Per-edge cost used by shortestpath (length plus
+    %     bank-clearance penalty for waterway segments, length-only for
+    %     synthetic connecting edges)
     %   - best_path: Best path node indices
     %   - path_depths: Depth information of the best path
     %   - path_points: Coordinate points of the best path
+    %   - path_clearances: Bank clearance (m) at each row of path_points
     %   - given_point1: Start point coordinates
     %   - given_point2: End point coordinates
     %   - all_points: Collection of all segment coordinate points
-    %   - polygon: Vertices of the polygon
+    %   - polygon: Vertices of the depare (navigable area) polygon
+    %   - polygon_land: Vertices of the lndare polygon
+    %   - bank_anchor_lonlat: WGS84 anchor used for the metric conversion
+    %   - bank_m_per_deg: Cached [m_per_deg_lon, m_per_deg_lat] at the anchor
+    %   - bank_seg_starts_m / bank_seg_ends_m: Boundary edges (in metres,
+    %     anchored on bank_anchor_lonlat) used by bank_clearance
+    %   - depare_polyshape: Cached polyshape(obj.polygon), used by the
+    %     arc smoother to reject any arc that would leave the navigable
+    %     area (cut a corner over land)
+    %   - vessel_beam: Vessel beam B in metres, used for the audit threshold
+    %   - safety_margin_m: Extra clearance margin in metres added to B/2
+    %   - k_bank: Bank-clearance weight in the Dijkstra edge cost
+    %     (w = length_m + k_bank * length_m / max(eps, min_clearance_m));
+    %     larger values bias the planner more strongly toward
+    %     wide-channel routes
+    %   - R_min: Minimum turning radius (m) for the corner arc smoother;
+    %     default 150 m, =~ 4 x ship length); set to 0 to disable corner smoothing
+    %
+    % Constructor:
+    %   planner(pgon_memory) uses default vessel_beam = 5.05 m,
+    %   safety_margin_m = 5 m, k_bank = 30, R_min = 150 m. To override,
+    %   pass name-value pairs, e.g.:
+    %     planner(pgon_memory, 'VesselBeam', 9.5, 'SafetyMargin', 6, ...
+    %                          'KBank', 35, 'RMin', 200)
     %
     % Author:
     %   Zhongbi Luo
     %
+    % Updated by:
+    %   Abhishek Dhyani
+    %
     % Date:
-    %   2024-05-26
+    %   2026-05-08
     %
     % Version:
-    %   1.0
+    %   1.1
 
-    
+
     properties
         pgon_memory
         segments
         G
         unique_coords
         edges
+        edge_weights
         best_path
         path_points
         path_depths
+        path_clearances
         given_point1
         given_point2
         all_points
         polygon
         polygon_land
+        bank_anchor_lonlat
+        bank_m_per_deg
+        bank_seg_starts_m
+        bank_seg_ends_m
+        depare_polyshape
+        vessel_beam
+        safety_margin_m
+        k_bank
+        R_min
     end
-    
+
      methods
-        function obj = planner(pgon_memory)
+        function obj = planner(pgon_memory, varargin)
             % planner constructor
+            p = inputParser;
+            addParameter(p, 'VesselBeam', 5.05, @(x) validateattributes(x, {'double'}, {'scalar', '>', 0}));
+            addParameter(p, 'SafetyMargin', 5.0, @(x) validateattributes(x, {'double'}, {'scalar', '>=', 0}));
+            addParameter(p, 'KBank', 30.0, @(x) validateattributes(x, {'double'}, {'scalar', '>=', 0}));
+            addParameter(p, 'RMin', 150.0, @(x) validateattributes(x, {'double'}, {'scalar', '>=', 0}));
+            parse(p, varargin{:});
             obj.pgon_memory = pgon_memory;
+            obj.vessel_beam = p.Results.VesselBeam;
+            obj.safety_margin_m = p.Results.SafetyMargin;
+            obj.k_bank = p.Results.KBank;
+            obj.R_min = p.Results.RMin;
             obj = obj.extractData();
+            obj = obj.prepareBankGeometry();
             obj = obj.buildGraph();
             obj = obj.checkAndConnectComponents();
         end
 
         function obj = plan_path(obj, given_point1, given_point2)
-            % Plan path method
+            % This function plans the path from given_point1 to given_point2.
+            % It checks if the points are inside the polygon, 
+            % finds the nearest segments, and plans the path accordingly.
+            % It also attaches literal endpoints if necessary and audits the path clearance.
+            
             obj.given_point1 = given_point1;
             obj.given_point2 = given_point2;
             
@@ -95,6 +161,12 @@ classdef planner
             else
                 obj = obj.planShortestPath(start_segment, end_segment, start_point, end_point);
             end
+
+            obj = obj.attachLiteralEndpoints(in_polygon1, in_polygon2);
+
+            obj = obj.smoothArcsAtCorners();
+
+            obj = obj.auditPathClearance();
       end
         
 
@@ -296,25 +368,51 @@ end
         end
 
         function obj = buildGraph(obj)
-            % Build graph method
-            % Constructs the graph object based on segment data
-            edges = [];
-            for i = 1:length(obj.segments)
+            % Build graph with edge weights
+            % w = length_m + k_bank * length_m / max(eps, min_clearance_m)
+            % so the Dijkstra optimiser prefers wide-channel routes.
+            n_seg = length(obj.segments);
+            edges = zeros(n_seg, 2);
+            weights = zeros(n_seg, 1);
+            for i = 1:n_seg
                 segment = obj.segments{i};
                 start_node = [segment.x(1), segment.y(1)];
                 end_node = [segment.x(end), segment.y(end)];
-                start_index = find(ismember(obj.unique_coords, start_node, 'rows'));
-                end_index = find(ismember(obj.unique_coords, end_node, 'rows'));
-                edges = [edges; start_index, end_index];
-
+                edges(i, 1) = find(ismember(obj.unique_coords, start_node, 'rows'));
+                edges(i, 2) = find(ismember(obj.unique_coords, end_node, 'rows'));
+                weights(i) = obj.computeSegmentWeight(segment);
             end
             obj.edges = edges;
-            obj.G = graph(edges(:, 1), edges(:, 2));
+            obj.edge_weights = weights;
+            obj.G = graph(edges(:, 1), edges(:, 2), weights);
+        end
+
+        function w = computeSegmentWeight(obj, segment)
+            pts = [segment.x(:), segment.y(:)];
+            pts_m = (pts - obj.bank_anchor_lonlat) .* obj.bank_m_per_deg;
+            length_m = sum(vecnorm(diff(pts_m, 1, 1), 2, 2));
+            % Sample 3 representative points (start, middle, end) instead
+            % of every segment vertex; the per-waypoint audit at the end
+            % of plan_path still uses every path point at full precision.
+            n_pts = size(pts, 1);
+            if n_pts <= 3
+                sample_idx = 1:n_pts;
+            else
+                sample_idx = [1, ceil(n_pts / 2), n_pts];
+            end
+            min_clearance = inf;
+            for k = sample_idx
+                c = obj.bank_clearance(pts(k, :));
+                if c < min_clearance
+                    min_clearance = c;
+                end
+            end
+            w = length_m + obj.k_bank * length_m / max(eps, min_clearance);
         end
 
         function obj = checkAndConnectComponents(obj)
-            % Check and connect components method
-            % Checks the connectivity of the graph and connects different components
+            % This function checks if the graph has multiple connected
+            % components and connects them with synthetic edges if necessary.
             bins = conncomp(obj.G);
             num_components = max(bins);
             while num_components > 1
@@ -335,8 +433,11 @@ end
                         end
                     end
                 end
+                connect_diff_m = (obj.unique_coords(min_pair(2), :) - obj.unique_coords(min_pair(1), :)) .* obj.bank_m_per_deg;
+                connect_w = norm(connect_diff_m);
                 obj.edges = [obj.edges; min_pair];
-                obj.G = graph(obj.edges(:, 1), obj.edges(:, 2));
+                obj.edge_weights = [obj.edge_weights; connect_w];
+                obj.G = graph(obj.edges(:, 1), obj.edges(:, 2), obj.edge_weights);
                 bins = conncomp(obj.G);
                 num_components = max(bins);
             end
@@ -377,7 +478,10 @@ end
         end
 
         function obj = planShortestPath(obj, start_segment, end_segment, start_point, end_point)
-            % Plan shortest path method
+            % This function plans the shortest path between two points that are on different segments.
+            % It computes the shortest path using Dijkstra's algorithm. 
+            % It also performs depth recognition for each segment of the path.
+            
             % Find the actual starting point in the starting point section
             start_point_coords = obj.all_points(start_point, :);
             end_point_coords = obj.all_points(end_point, :); 
@@ -400,13 +504,8 @@ end
             end_index1 = find(ismember(obj.unique_coords, end_node1, 'rows'));
             end_index2 = find(ismember(obj.unique_coords, end_node2, 'rows'));
 
-            paths = {
-                shortestpath(obj.G, start_index1, end_index1),
-                shortestpath(obj.G, start_index1, end_index2),
-                shortestpath(obj.G, start_index2, end_index1),
-                shortestpath(obj.G, start_index2, end_index2)
-            };
-
+            % Pick the start/end-segment endpoint pair whose Dijkstra
+            % cost (length + bank-clearance penalty, computed in buildGraph) is smallest.
             path_indices = [
                 start_index1, end_index1;
                 start_index1, end_index2;
@@ -414,15 +513,13 @@ end
                 start_index2, end_index2
             ];
 
-            min_path_length = inf;
+            min_cost = inf;
             best_path = [];
             best_path_indices = [];
-            distances = pdist2(obj.unique_coords, obj.unique_coords);
-            for i = 1:length(paths)
-                path = paths{i};
-                path_length = sum(distances(sub2ind(size(distances), path(1:end-1), path(2:end))));
-                if path_length < min_path_length
-                    min_path_length = path_length;
+            for i = 1:size(path_indices, 1)
+                [path, cost] = shortestpath(obj.G, path_indices(i, 1), path_indices(i, 2));
+                if cost < min_cost
+                    min_cost = cost;
                     best_path = path;
                     best_path_indices = path_indices(i, :);
                 end
@@ -642,6 +739,294 @@ end
                 end
             end
             end
+
+        function obj = attachLiteralEndpoints(obj, use_literal_start, use_literal_end)
+            % This function stitches the user-clicked coordinates onto the planned path as
+            % the literal first/last waypoint. 
+            if use_literal_start
+                junction_idx = obj.findJunctionIndices();
+                if ~isempty(junction_idx)
+                    keep_from = junction_idx(1);
+                else
+                    keep_from = size(obj.path_points, 1);
+                end
+                if ~obj.isLineInDepare(obj.given_point1, obj.path_points(keep_from, :))
+                    keep_from = 1;
+                end
+                start_depth = obj.lookupDepth(obj.given_point1);
+                obj.path_points = [obj.given_point1; obj.path_points(keep_from:end, :)];
+                obj.path_depths = [start_depth; obj.path_depths(keep_from:end, :)];
+            end
+            if use_literal_end
+                junction_idx = obj.findJunctionIndices();
+                if ~isempty(junction_idx)
+                    keep_to = junction_idx(end);
+                else
+                    keep_to = 1;
+                end
+                if ~obj.isLineInDepare(obj.path_points(keep_to, :), obj.given_point2)
+                    keep_to = size(obj.path_points, 1);
+                end
+                end_depth = obj.lookupDepth(obj.given_point2);
+                obj.path_points = [obj.path_points(1:keep_to, :); obj.given_point2];
+                obj.path_depths = [obj.path_depths(1:keep_to, :); end_depth];
+            end
+        end
+
+        function junction_idx = findJunctionIndices(obj)
+            % Find indices in path_points whose coordinates match a junction
+            % node in unique_coords
+            if isempty(obj.path_points) || isempty(obj.unique_coords)
+                junction_idx = [];
+                return;
+            end
+            tol = 1e-9;
+            distances = pdist2(obj.path_points, obj.unique_coords);
+            junction_idx = find(min(distances, [], 2) < tol);
+        end
+
+        function depth = lookupDepth(obj, point)
+            % Look up the charted depth at an arbitrary (lon, lat) point by
+            % checking containment against every depare polygon. Returns
+            % NaN when the point is not inside any depare polygon.
+            depth = NaN;
+            depare_index = find(strcmp({obj.pgon_memory.name}, 'depare'));
+            if isempty(depare_index)
+                return;
+            end
+            depare_info = obj.pgon_memory(depare_index).info;
+            for k = 1:numel(depare_info)
+                bbox = depare_info(k).boundingbox;
+                if all(point >= bbox(1, :)) && all(point <= bbox(2, :)) ...
+                        && isinterior(depare_info(k).polygon, point(1), point(2))
+                    depth_value = depare_info(k).SOUACC;
+                    if isnan(depth_value)
+                        depth_value = depare_info(k).VERDAT;
+                    end
+                    depth = depth_value;
+                    return;
+                end
+            end
+        end
+
+        function obj = prepareBankGeometry(obj)
+            verts = obj.polygon;
+            if isempty(verts)
+                obj.bank_anchor_lonlat = [0, 0];
+                obj.bank_m_per_deg = [111320, 111320];
+                obj.bank_seg_starts_m = zeros(0, 2);
+                obj.bank_seg_ends_m = zeros(0, 2);
+                obj.depare_polyshape = polyshape();
+                return;
+            end
+            obj.depare_polyshape = polyshape(verts);
+
+            valid_rows = ~any(isnan(verts), 2);
+            anchor = mean(verts(valid_rows, :), 1);
+            m_per_deg_lat = 111320;
+            m_per_deg_lon = 111320 * cos(deg2rad(anchor(2)));
+            obj.bank_anchor_lonlat = anchor;
+            obj.bank_m_per_deg = [m_per_deg_lon, m_per_deg_lat];
+
+            n = size(verts, 1);
+            nan_mask = ~valid_rows;
+            region_starts = [1; find(nan_mask) + 1];
+            region_ends   = [find(nan_mask) - 1; n];
+            keep = region_ends >= region_starts;
+            region_starts = region_starts(keep);
+            region_ends   = region_ends(keep);
+
+            seg_starts = zeros(0, 2);
+            seg_ends   = zeros(0, 2);
+            for r = 1:numel(region_starts)
+                rs = region_starts(r);
+                re = region_ends(r);
+                if re <= rs
+                    continue;
+                end
+                idx = (rs:re)';
+                next_idx = [idx(2:end); idx(1)];
+                seg_starts = [seg_starts; verts(idx, :)]; 
+                seg_ends   = [seg_ends;   verts(next_idx, :)]; 
+            end
+
+            seg_starts_m = (seg_starts - anchor) .* obj.bank_m_per_deg;
+            seg_ends_m   = (seg_ends   - anchor) .* obj.bank_m_per_deg;
+            obj.bank_seg_starts_m = seg_starts_m;
+            obj.bank_seg_ends_m   = seg_ends_m;
+        end
+
+        function clearance_m = bank_clearance(obj, point_lonlat)
+            if isempty(obj.bank_seg_starts_m)
+                clearance_m = inf;
+                return;
+            end
+            p_m = (point_lonlat - obj.bank_anchor_lonlat) .* obj.bank_m_per_deg;
+            v = obj.bank_seg_ends_m - obj.bank_seg_starts_m;
+            w = p_m - obj.bank_seg_starts_m;
+            seg_len_sq = sum(v .* v, 2);
+            seg_len_sq(seg_len_sq < eps) = eps;
+            t = sum(w .* v, 2) ./ seg_len_sq;
+            t = max(0, min(1, t));
+            proj = obj.bank_seg_starts_m + t .* v;
+            clearance_m = min(vecnorm(p_m - proj, 2, 2));
+        end
+
+        function ok = isLineInDepare(obj, p1_lonlat, p2_lonlat)
+            % Sample the straight line p1->p2 at ~10 m spacing and check
+            % every sample lies inside depare_polyshape. Used to reject
+            % proposed path shortcuts that would cross land.
+            if isempty(obj.depare_polyshape.Vertices)
+                ok = true;
+                return;
+            end
+            diff_m = (p2_lonlat - p1_lonlat) .* obj.bank_m_per_deg;
+            len_m = norm(diff_m);
+            n_samp = max(2, ceil(len_m / 10));
+            ts = linspace(0, 1, n_samp)';
+            samples = p1_lonlat + ts .* (p2_lonlat - p1_lonlat);
+            ok = all(isinterior(obj.depare_polyshape, samples(:, 1), samples(:, 2)));
+        end
+
+        function obj = smoothArcsAtCorners(obj)
+            % This function identifies junction points in the path and replaces sharp corners 
+            % with circular arcs of radius R_min. The new arc points are integrated into the path
+            % by replacing the original corner point.
+            if obj.R_min <= 0 || size(obj.path_points, 1) < 3
+                return;
+            end
+            junction_idx = obj.findJunctionIndices();
+            n = size(obj.path_points, 1);
+            interior = junction_idx(junction_idx > 1 & junction_idx < n);
+            if isempty(interior)
+                return;
+            end
+
+            new_points = obj.path_points;
+            new_depths = obj.path_depths;
+            arc_step_m = 10;
+
+            for k = numel(interior):-1:1
+                corner_idx = interior(k);
+                if corner_idx < 2 || corner_idx > size(new_points, 1) - 1
+                    continue;
+                end
+                p_prev_m   = (new_points(corner_idx - 1, :) - obj.bank_anchor_lonlat) .* obj.bank_m_per_deg;
+                p_corner_m = (new_points(corner_idx,     :) - obj.bank_anchor_lonlat) .* obj.bank_m_per_deg;
+                p_next_m   = (new_points(corner_idx + 1, :) - obj.bank_anchor_lonlat) .* obj.bank_m_per_deg;
+                d_in_raw  = p_corner_m - p_prev_m;
+                d_out_raw = p_next_m   - p_corner_m;
+                len_in  = norm(d_in_raw);
+                len_out = norm(d_out_raw);
+                if len_in < eps || len_out < eps
+                    continue;
+                end
+                d_in  = d_in_raw  / len_in;
+                d_out = d_out_raw / len_out;
+                cos_a = max(-1, min(1, dot(d_in, d_out)));
+                alpha = acos(cos_a);
+                if alpha < deg2rad(1)
+                    continue;
+                end
+                T = obj.R_min * tan(alpha / 2);
+
+                last_kept_before = 1;
+                for i = corner_idx - 1:-1:1
+                    p_i_m = (new_points(i, :) - obj.bank_anchor_lonlat) .* obj.bank_m_per_deg;
+                    if dot(p_corner_m - p_i_m, d_in) >= T
+                        last_kept_before = i;
+                        break;
+                    end
+                end
+                n_now = size(new_points, 1);
+                first_kept_after = n_now;
+                for i = corner_idx + 1:1:n_now
+                    p_i_m = (new_points(i, :) - obj.bank_anchor_lonlat) .* obj.bank_m_per_deg;
+                    if dot(p_i_m - p_corner_m, d_out) >= T
+                        first_kept_after = i;
+                        break;
+                    end
+                end
+
+                p_in_t_m  = p_corner_m - T * d_in;
+                p_out_t_m = p_corner_m + T * d_out;
+
+                cross_z = d_in(1) * d_out(2) - d_in(2) * d_out(1);
+                if cross_z >= 0
+                    n_in = [-d_in(2),  d_in(1)];
+                else
+                    n_in = [ d_in(2), -d_in(1)];
+                end
+                center_m = p_in_t_m + obj.R_min * n_in;
+
+                v_in  = p_in_t_m  - center_m;
+                v_out = p_out_t_m - center_m;
+                theta_in  = atan2(v_in(2),  v_in(1));
+                theta_out = atan2(v_out(2), v_out(1));
+                if cross_z >= 0
+                    d_theta = theta_out - theta_in;
+                    if d_theta < 0
+                        d_theta = d_theta + 2 * pi;
+                    end
+                else
+                    d_theta = theta_out - theta_in;
+                    if d_theta > 0
+                        d_theta = d_theta - 2 * pi;
+                    end
+                end
+
+                arc_length = abs(d_theta) * obj.R_min;
+                n_arc = max(2, ceil(arc_length / arc_step_m));
+                thetas = linspace(theta_in, theta_in + d_theta, n_arc)';
+                arc_samples_m = center_m + obj.R_min * [cos(thetas), sin(thetas)];
+                arc_samples_lonlat = arc_samples_m ./ obj.bank_m_per_deg + obj.bank_anchor_lonlat;
+
+                % Reject the arc if any sample leaves the depare
+                % polygon and keep the original corner instead.
+                if ~isempty(obj.depare_polyshape.Vertices) && ...
+                        ~all(isinterior(obj.depare_polyshape, arc_samples_lonlat(:, 1), arc_samples_lonlat(:, 2)))
+                    continue;
+                end
+
+                arc_depths = zeros(n_arc, 1);
+                for s = 1:n_arc
+                    arc_depths(s) = obj.lookupDepth(arc_samples_lonlat(s, :));
+                end
+
+                new_points = [new_points(1:last_kept_before, :); arc_samples_lonlat; new_points(first_kept_after:end, :)];
+                new_depths = [new_depths(1:last_kept_before);    arc_depths;          new_depths(first_kept_after:end)];
+            end
+
+            obj.path_points = new_points;
+            obj.path_depths = new_depths;
+        end
+
+        function obj = auditPathClearance(obj)
+            % This function audits the bank clearance of each waypoint in the
+            % planned path and issues a warning if any waypoint has clearance
+            % below the threshold (vessel_beam/2 + safety_margin_m).
+            n = size(obj.path_points, 1);
+            if n == 0
+                obj.path_clearances = zeros(0, 1);
+                return;
+            end
+            clearances = zeros(n, 1);
+            for k = 1:n
+                clearances(k) = obj.bank_clearance(obj.path_points(k, :));
+            end
+            obj.path_clearances = clearances;
+
+            threshold = obj.vessel_beam / 2 + obj.safety_margin_m;
+            [min_c, idx] = min(clearances);
+            if min_c < threshold
+                warning('maps:planner:bankClearance', ...
+                    ['Planned path waypoint %d has bank clearance %.2f m, ' ...
+                     'below threshold %.2f m (vessel_beam/2 + safety_margin_m). ' ...
+                     'Position [lon lat] = [%.6f %.6f].'], ...
+                    idx, min_c, threshold, ...
+                    obj.path_points(idx, 1), obj.path_points(idx, 2));
+            end
+        end
 
         function in_polygon = is_point_inside_polygon(obj, given_point)
             in_polygon = isinterior(polyshape(obj.polygon), given_point(1), given_point(2));

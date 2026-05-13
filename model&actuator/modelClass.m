@@ -14,9 +14,26 @@ classdef modelClass
     %   - sensor_vel_relative: Relative ship velocity over water under ship frame. datatype: array (3, 1).
     %   - ref_state: States used in control reference model. datatype: array (6, 1).
     %   - ref_state_dot: Output (state_dot) of control reference model. datatype: array (6, 1).
+    %   - wp_depth_pos: Waypoint positions for depth profile (optional). datatype: array (N, 2).
+    %   - wp_depth_values: Charted depths (m) at the waypoints for depth profile (optional). datatype: array (N, 1).
+    %   - default_water_depth: Water depth (m) used when no profile is set or the nearest waypoint depth is NaN. datatype: scalar.
     %
     % Methods:
-    % - pramsCalculator:
+    % - Depthprofile:
+    %   - set_depth_profile: This function attaches a along-path depth profile so sensor_dynamic_model can evaluate the local water depth at the current vessel position.
+    %     - Input Arguments:
+    %       wp_pos (array): Waypoint positions for depth profile.
+    %       wp_depths (array): Charted depths (m) at the waypoints for depth profile.
+    %       default_H (scalar): Water depth (m) used when no profile is set or the nearest waypoint depth is NaN.
+    %     - Output Arguments:
+    %       obj: Updated modelClass object with depth profile set.
+    %   - local_water_depth: This function looks up the charted depth at the vessel position. Falls back to default_water_depth when no profile is set or the nearest waypoint depth is NaN.
+    %     - Input Arguments:
+    %       vessel_pos (array): Vessel position for depth lookup.
+    %     - Output Arguments:
+    %       water_depth (scalar): Local water depth (m).
+    %
+    % - paramsCalculator:
     %   - ship_params_calculator: This function calculates model parameters using empirical formulas based on ship dimensions and environment.
     %     - Input Arguments:
     %       env_set (structure array): Environment setting.
@@ -25,6 +42,7 @@ classdef modelClass
     %       obj.dyn_model_params (structure array): Parameters in the sensor dynamic model.
     %       obj.ref_model_params (structure array): Parameters in the control reference model.
     %       obj.KTindex (structure array): Parameters in the Nomoto model.
+    %
     % - Models:
     %   - sensor_dynamic_model: This function provides a dynamic model for 3DOF maneuvering motion. It is highly accurate and serves as a virtual sensor.
     %     - Input Arguments:
@@ -46,7 +64,7 @@ classdef modelClass
     %   2023-11-23
     %
     % Version:
-    %   1.0
+    %   1.1
 
     properties
         ship_dim
@@ -58,6 +76,9 @@ classdef modelClass
         sensor_vel_relative
         ref_state
         ref_state_dot
+        wp_depth_pos 
+        wp_depth_values 
+        default_water_depth 
     end
 
     % Constructor
@@ -73,7 +94,34 @@ classdef modelClass
 
     end
 
-    % pramsCalculator
+    % Depthprofile
+    methods
+
+        function obj = set_depth_profile(obj, wp_pos, wp_depths, default_H)
+            obj.wp_depth_pos = wp_pos;
+            obj.wp_depth_values = wp_depths;
+            if nargin >= 4 && ~isempty(default_H)
+                obj.default_water_depth = default_H;
+            end
+        end
+
+        function H = local_water_depth(obj, x, y)
+            if isempty(obj.wp_depth_pos) || isempty(obj.wp_depth_values)
+                H = obj.default_water_depth;
+                return;
+            end
+            dx = obj.wp_depth_pos(:, 1) - x;
+            dy = obj.wp_depth_pos(:, 2) - y;
+            [~, idx] = min(dx .* dx + dy .* dy);
+            H = obj.wp_depth_values(idx);
+            if isnan(H)
+                H = obj.default_water_depth;
+            end
+        end
+
+    end
+
+    % paramsCalculator
     methods
 
         function obj = ship_params_calculator(obj, env_set, rud_params)
@@ -123,6 +171,10 @@ classdef modelClass
             C_W = 0.0033;
             C_T = (1 + k + delta_k) * C_F + C_W; % Ct = R/(0.5*rho_water*S*U*2)
             R_dash = C_T * S / L / d;
+            S_over_Ld = S / L / d; % H-independent factor of R_dash, used to
+                                   % recompute R_dash each step from the
+                                   % local water depth in sensor_dynamic_model.
+            obj.default_water_depth = H;
 
             %% Calculate surge hydrodynamics
             X_vv_dash = 1.15 * C_b / (L / B) - 0.18;
@@ -163,7 +215,7 @@ classdef modelClass
             % K = K_dash *  (L/U)
 
             %% Construct outputs
-            obj.dyn_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'X_vv_dash', X_vv_dash, 'X_rr_dash', X_rr_dash, 'X_vr_dash', X_vr_dash, 'Y_v_dash', Y_v_dash, 'Y_vvv_dash', Y_vvv_dash, 'Y_r_dash', Y_r_dash, 'Y_rrr_dash', Y_rrr_dash, 'Y_vvr_dash', Y_vvr_dash, 'Y_vrr_dash', Y_vrr_dash, 'N_v_dash', N_v_dash, 'N_vvv_dash', N_vvv_dash, 'N_r_dash', N_r_dash, 'N_rrr_dash', N_rrr_dash, 'N_vvr_dash', N_vvr_dash, 'N_vrr_dash', N_vrr_dash);
+            obj.dyn_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'k', k, 'C_F', C_F, 'C_W', C_W, 'S_over_Ld', S_over_Ld, 'X_vv_dash', X_vv_dash, 'X_rr_dash', X_rr_dash, 'X_vr_dash', X_vr_dash, 'Y_v_dash', Y_v_dash, 'Y_vvv_dash', Y_vvv_dash, 'Y_r_dash', Y_r_dash, 'Y_rrr_dash', Y_rrr_dash, 'Y_vvr_dash', Y_vvr_dash, 'Y_vrr_dash', Y_vrr_dash, 'N_v_dash', N_v_dash, 'N_vvv_dash', N_vvv_dash, 'N_r_dash', N_r_dash, 'N_rrr_dash', N_rrr_dash, 'N_vvr_dash', N_vvr_dash, 'N_vrr_dash', N_vrr_dash);
             obj.ref_model_params = struct('L', L, 'd', d, 'rho_water', rho_water, 'm', m, 'x_G', x_G, 'I_zG', I_zG, 'm_x', m_x, 'm_y', m_y, 'J_z', J_z, 'R_dash', R_dash, 'Y_v_dash', Y_v_dash, 'Y_r_dash', Y_r_dash, 'N_v_dash', N_v_dash, 'N_r_dash', N_r_dash);
             obj.KTindex = struct('K_dash', K_dash, 'T_dash', T_dash);
 
@@ -209,7 +261,13 @@ classdef modelClass
             m_x = obj.dyn_model_params.m_x;
             m_y = obj.dyn_model_params.m_y;
             J_z = obj.dyn_model_params.J_z;
-            R_dash = obj.dyn_model_params.R_dash;
+            % Recompute the shallow-water-corrected resistance (delta_k, R_dash) from the
+            % local water depth at the current vessel position. The H-independent factors
+            %  (k, C_F, C_W, S/(L*d)) were precomputed in ship_params_calculator
+            H_local = obj.local_water_depth(x, y);
+            delta_k = 0.644 * (H_local / d) ^ (-1.72);
+            C_T = (1 + obj.dyn_model_params.k + delta_k) * obj.dyn_model_params.C_F + obj.dyn_model_params.C_W;
+            R_dash = C_T * obj.dyn_model_params.S_over_Ld;
             X_vv_dash = obj.dyn_model_params.X_vv_dash;
             X_rr_dash = obj.dyn_model_params.X_rr_dash;
             X_vr_dash = obj.dyn_model_params.X_vr_dash;

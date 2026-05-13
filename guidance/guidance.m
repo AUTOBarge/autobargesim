@@ -56,14 +56,11 @@ classdef guidance
             %                            x_n, y_n]
             %                 size (: x 2)  | matrix | double
             %       x -> current state of the vessel [u, v, r, x, y, psi]
-            %            size (1 x 4) | vector | double
+            %            size (1 x 6) | vector | double
             %       wp_idx -> current waypoint index. use the function
             %                 find_active_wp_segment() to find the current 
             %                 waypoint index.
             %                 scalar | double
-
-            validateattributes(wp_pos, {'double'}, {'size', [NaN, 2]})
-            validateattributes(x, {'double'}, {'size', [1, 6]})
 
             wp_pos = wp_pos';
 
