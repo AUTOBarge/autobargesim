@@ -27,10 +27,12 @@ classdef sbmpc < colav
     properties
         tuning_param % tuning parameters
         boundary_xy_enu      % depare boundary, decimated, as Nx2 vertices with NaN row separators (used by inpolygon land check)
-        land_penalty = 1e6   % cost added when a candidate trajectory leaves depare
+        land_penalty = 5     % cost added when a candidate trajectory leaves depare
         land_check_stride = 5  % test every Nth ownship_traj sample for in-water
         update_stride = 5      % main loop calls run_sbmpc once every Nth simulation step
         boundary_decim_stride = 2 % keep every Nth depare boundary vertex for the per-step inpolygon land check
+        bank_safety_margin = 8 % depare boundary is inset by this many metres when caching, so COLAV stays this far from the actual bank
+        use_parallel = false % set true at construction iff Parallel Computing Toolbox is licensed
     end
     
     methods
@@ -96,6 +98,8 @@ classdef sbmpc < colav
                 'K_DCHI_P_', p.Results.K_DCHI_P_,...
                 'Chi_ca_', p.Results.Chi_ca_,...
                 'U_ca_', p.Results.U_ca_);
+
+            sbmpcObj.use_parallel = license('test', 'Distrib_Computing_Toolbox') == 1;
         end
         function self = set_depare_polyshape(self, polyshape_wgs84, lat0, lon0)
             % Cache the depare polygon in the same ENU frame as the
@@ -121,9 +125,17 @@ classdef sbmpc < colav
             nan_mask = any(isnan(verts_enu), 2);
             keep_mask = (mod((1:n)', stride) == 1) | nan_mask;
             decimated = verts_enu(keep_mask, :);
-            warn_state = warning('off', 'MATLAB:polyshape:repairedBySimplify');
+            warn_simp = warning('off', 'MATLAB:polyshape:repairedBySimplify');
+            warn_b3 = warning('off', 'MATLAB:polyshape:boundary3Points');
             clean_poly = polyshape(decimated);
-            warning(warn_state);
+            if self.bank_safety_margin > 0
+                inset_poly = polybuffer(clean_poly, -self.bank_safety_margin);
+                if ~isempty(inset_poly.Vertices)
+                    clean_poly = inset_poly;
+                end
+            end
+            warning(warn_b3);
+            warning(warn_simp);
             self.boundary_xy_enu = clean_poly.Vertices;
         end
 
@@ -173,53 +185,66 @@ classdef sbmpc < colav
                 ts_trajs{idx} = self.calcVesselTraj(state_ts, state_ts(3:4), self.dt, n_samples);
             end
 
-            cost_k_min = inf;
-            for i = 1:length(Chi_ca_)
-                for j = 1:length(U_ca_)
-                    cost_i_max = -1;
+            n_chi = length(Chi_ca_);
+            n_U = length(U_ca_);
+            costs = inf(n_chi, n_U);
 
-                    ownship_traj = self.calcVesselTraj(state, [chi_d + Chi_ca_(i), U_d * U_ca_(j)], self.dt, n_samples);
-
-                    land_cost = 0;
-                    
-                    if ~isempty(self.boundary_xy_enu) && (Chi_ca_(i) ~= 0 || U_ca_(j) ~= 1)
-                        idx_check = 1:self.land_check_stride:size(ownship_traj, 1);
-                        in_water = inpolygon(ownship_traj(idx_check, 1), ownship_traj(idx_check, 2), ...
-                                             self.boundary_xy_enu(:, 1), self.boundary_xy_enu(:, 2));
-                        if ~all(in_water)
-                            land_cost = self.land_penalty;
-                        end
+            if self.use_parallel
+                parfor i = 1:n_chi
+                    row = inf(1, n_U);
+                    for j = 1:n_U
+                        row(j) = self.computeCandidateCost(state, chi_d, U_d, ...
+                            Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last, ...
+                            ts_trajs, num_ts, n_samples);
                     end
-
-                    for idx = 1:num_ts
-                        targetship_traj = ts_trajs{idx};
-
-                        [~, ~, ~, ~, ~, ~, colregs_cost] = self.calc_cost_COLREGS(ownship_traj, targetship_traj, n_samples);
-                        [~, ~, collision_cost] = self.calc_cost_collision(ownship_traj, targetship_traj, self.dt, n_samples);
-
-                        cost_i = max(colregs_cost + collision_cost);
-
-                        if cost_i > cost_i_max
-                            cost_i_max = cost_i;
-                        end
-                    end
-
-                    F = self.calc_cost_maneuvering(chi_d, U_d, Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last);
-
-                    tot_cost = cost_i_max + F + land_cost;
-
-                    if tot_cost < cost_k_min
-                        cost_k_min = tot_cost;
-                        chi_m = Chi_ca_(i);
-                        U_m = U_ca_(j);
+                    costs(i, :) = row;
+                end
+            else
+                for i = 1:n_chi
+                    for j = 1:n_U
+                        costs(i, j) = self.computeCandidateCost(state, chi_d, U_d, ...
+                            Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last, ...
+                            ts_trajs, num_ts, n_samples);
                     end
                 end
             end
+
+            [~, k] = min(costs(:));
+            [i_star, j_star] = ind2sub([n_chi, n_U], k);
+            chi_m = Chi_ca_(i_star);
+            U_m = U_ca_(j_star);
             chi_c = utils.wrap_angle_to_pmpi(chi_d + chi_m);
             U_c = U_d * U_m;
         end
     end
     methods (Hidden)
+        function cost = computeCandidateCost(self, state, chi_d, U_d, chi_ca, U_ca, chi_m_last, U_m_last, ts_trajs, num_ts, n_samples)
+            ownship_traj = self.calcVesselTraj(state, [chi_d + chi_ca, U_d * U_ca], self.dt, n_samples);
+
+            land_cost = 0;
+            if ~isempty(self.boundary_xy_enu) && (chi_ca ~= 0 || U_ca ~= 1)
+                idx_check = 1:self.land_check_stride:size(ownship_traj, 1);
+                in_water = inpolygon(ownship_traj(idx_check, 1), ownship_traj(idx_check, 2), ...
+                                     self.boundary_xy_enu(:, 1), self.boundary_xy_enu(:, 2));
+                if ~all(in_water)
+                    land_cost = self.land_penalty * mean(~in_water);
+                end
+            end
+
+            cost_i_max = -1;
+            for idx = 1:num_ts
+                targetship_traj = ts_trajs{idx};
+                [~, ~, ~, ~, ~, ~, colregs_cost] = self.calc_cost_COLREGS(ownship_traj, targetship_traj, n_samples);
+                [~, ~, collision_cost] = self.calc_cost_collision(ownship_traj, targetship_traj, self.dt, n_samples);
+                cost_i = max(colregs_cost + collision_cost);
+                if cost_i > cost_i_max
+                    cost_i_max = cost_i;
+                end
+            end
+
+            F = self.calc_cost_maneuvering(chi_d, U_d, chi_ca, U_ca, chi_m_last, U_m_last);
+            cost = cost_i_max + F + land_cost;
+        end
         function F = calc_cost_maneuvering(self, chi_d, U_d, chi_m, U_m, chi_m_last, U_m_last)
             % INPUTS:
             %        chi_d -> desired course angle in radians
@@ -265,25 +290,29 @@ classdef sbmpc < colav
             Q_ = self.tuning_param.Q_;
             K_COLL_ = self.tuning_param.K_COLL_;
 
-            C_N = zeros(1, N);
-            R_N = zeros(1, N);
-            cost_N = zeros(1, N);
-            
-            t = 0; t0 = 0;
-            for i = 1:N
-                t = t + dt;
+            dx = ts_traj(1:N, 1) - os_traj(1:N, 1);
+            dy = ts_traj(1:N, 2) - os_traj(1:N, 2);
+            d_norm = sqrt(dx.^2 + dy.^2);
 
-                [d, v_o, v_s] = self.extractInfoFromTrajsAtSampleN(os_traj, ts_traj, i);
+            obs_U = ts_traj(1:N, 4);
+            obs_psi = ts_traj(1:N, 3);
+            os_U = os_traj(1:N, 4);
+            os_psi = os_traj(1:N, 3);
 
-                if norm(d) < D_SAFE_
-                    R_N(i) = (1 / (abs(t - t0) ^ P_)) * ((D_SAFE_ / norm(d))^Q_);
-                    C_N(i) = K_COLL_ * norm(v_s - v_o) ^ 2;
-                else
-                    R_N(i) = 0;
-                    C_N(i) = 0;
-                end
-                cost_N(i) = C_N(i) * R_N(i);
-            end
+            vrel_x = os_U .* cos(os_psi) - obs_U .* cos(obs_psi);
+            vrel_y = os_U .* sin(os_psi) - obs_U .* sin(obs_psi);
+
+            t = (1:N).' * dt;
+            mask = d_norm < D_SAFE_;
+
+            R_N = zeros(N, 1);
+            C_N = zeros(N, 1);
+            R_N(mask) = (1 ./ (abs(t(mask)) .^ P_)) .* ((D_SAFE_ ./ d_norm(mask)) .^ Q_);
+            C_N(mask) = K_COLL_ * (vrel_x(mask).^2 + vrel_y(mask).^2);
+
+            C_N = C_N.';
+            R_N = R_N.';
+            cost_N = C_N .* R_N;
         end
         function [CL_N, OT_N, SB_N, HO_N, CR_N, mu_N, cost_N] = calc_cost_COLREGS(self, os_traj, ts_traj, N)
             D_CLOSE_ = self.tuning_param.D_CLOSE_;
@@ -293,68 +322,49 @@ classdef sbmpc < colav
             PHI_CR_ = self.tuning_param.PHI_CR_;
             KAPPA_ = self.tuning_param.KAPPA_;
 
-            CL_N = zeros(1, N);
-            OT_N = zeros(1, N);
-            SB_N = zeros(1, N);
-            HO_N = zeros(1, N);
-            CR_N = zeros(1, N);
-            mu_N = zeros(1, N);
-            cost_N = zeros(1, N);
+            dx = ts_traj(1:N, 1) - os_traj(1:N, 1);
+            dy = ts_traj(1:N, 2) - os_traj(1:N, 2);
+            d_norm = sqrt(dx.^2 + dy.^2);
 
-            for i = 1:N
-                [d, v_o, v_s] = self.extractInfoFromTrajsAtSampleN(os_traj, ts_traj, i);
-                
-                % Check whether it is CLOSE
-                CL_N(i) = norm(d) <= D_CLOSE_;
+            obs_U = ts_traj(1:N, 4);
+            obs_psi = ts_traj(1:N, 3);
+            os_U = os_traj(1:N, 4);
+            os_psi = os_traj(1:N, 3);
 
-                % Overtaken by obstacle
-                OT_N(i) = (dot(v_s, v_o) > cos(PHI_OT_) * norm(v_s) * norm(v_o)) & (norm(v_s) < norm(v_o));
-    
-                % Obstacle on starboard side
-                os_psi_ = os_traj(i, 3);
-                phi = utils.wrap_angle_diff_to_pmpi(atan2(d(2), d(1)), os_psi_);
-                SB_N(i) = phi <= 0;
-    
-                % Obstacle Head-on
-                los = d / norm(d);
-                HO_N(i) = ((norm(v_o) > 0.05)...
-                      & (dot(v_s, v_o) < -cos(PHI_HO_) * norm(v_s) * norm(v_o))...
-                      & (dot(v_s, los) > cos(PHI_AH_) * norm(v_s))...
-                     );
-    
-                % Crossing situation
-                CR_N(i) = (dot(v_s, v_o) < cos(PHI_CR_) * norm(v_s) * norm(v_o));
+            os_u = os_U .* cos(os_psi);
+            os_v = os_U .* sin(os_psi);
+            obs_u = obs_U .* cos(obs_psi);
+            obs_v = obs_U .* sin(obs_psi);
 
-                mu_N(i) = (CL_N(i) & SB_N(i) & HO_N(i)) | (CL_N(i) & SB_N(i) & CR_N(i) & ~OT_N(i));
+            v_s_norm = abs(os_U);
+            v_o_norm = abs(obs_U);
+            dot_so = os_u .* obs_u + os_v .* obs_v;
 
-                cost_N(i) = KAPPA_ * mu_N(i);
-            end
-        end
-        function [d, v_o, v_s] = extractInfoFromTrajsAtSampleN(self, os_traj, ts_traj, N)
-            d = zeros(1, 2);
-            v_o = zeros(1, 2);
-            v_s = zeros(1, 2);
+            CL = d_norm <= D_CLOSE_;
+            OT = (dot_so > cos(PHI_OT_) .* v_s_norm .* v_o_norm) & (v_s_norm < v_o_norm);
 
-            obs_x_ = ts_traj(N, 1);
-            obs_y_ = ts_traj(N, 2);
-            obs_psi_ = ts_traj(N, 3);
-            obs_U_ = ts_traj(N, 4);
-            obs_u_ = obs_U_ * cos(obs_psi_);
-            obs_v_ = obs_U_ * sin(obs_psi_);
-            
-            os_x_ = os_traj(N, 1);
-            os_y_ = os_traj(N, 2);
-            os_psi_ = os_traj(N, 3);
-            os_U_ = os_traj(N, 4);
-            os_u_ = os_U_ * cos(os_psi_);
-            os_v_ = os_U_ * sin(os_psi_);
-    
-            d(1) = obs_x_ - os_x_;
-            d(2) = obs_y_ - os_y_;
-            v_o(1) = obs_u_;
-            v_o(2) = obs_v_;
-            v_s(1) = os_u_;
-            v_s(2) = os_v_;
+            phi = mod((atan2(dy, dx) - os_psi) + pi, 2*pi) - pi;
+            SB = phi <= 0;
+
+            safe_d = max(d_norm, eps);
+            los_x = dx ./ safe_d;
+            los_y = dy ./ safe_d;
+            dot_s_los = os_u .* los_x + os_v .* los_y;
+            HO = (v_o_norm > 0.05) ...
+               & (dot_so < -cos(PHI_HO_) .* v_s_norm .* v_o_norm) ...
+               & (dot_s_los > cos(PHI_AH_) .* v_s_norm);
+
+            CR = dot_so < cos(PHI_CR_) .* v_s_norm .* v_o_norm;
+
+            mu = (CL & SB & HO) | (CL & SB & CR & ~OT);
+
+            CL_N = CL.';
+            OT_N = OT.';
+            SB_N = SB.';
+            HO_N = HO.';
+            CR_N = CR.';
+            mu_N = mu.';
+            cost_N = KAPPA_ * double(mu_N);
         end
     end
 end

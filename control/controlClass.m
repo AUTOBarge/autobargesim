@@ -20,7 +20,7 @@ classdef controlClass
 	% -LowLevelMPCCtrl: This method implements the low-level MPC controller.
     % Author:
 	% 	Abhishek Dhyani
-        %       AmirReza Haqshenas M.
+    %       AmirReza Haqshenas M.
 	% Date:
 	%	29/02/2024
 	% Version:
@@ -48,7 +48,7 @@ classdef controlClass
                 obj.pid_params = pid_params;
                 obj.Flag_cont = Flag_cont;
             elseif Flag_cont==2 && nargin==1
-                obj.mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.01, 'max_iter', 200, 'deltaMAX', 34);
+                obj.mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.01, 'max_iter', 1000, 'deltaMAX', 34);
                 obj.Flag_cont = Flag_cont;
                 obj.num_ct = 1;%mpc_model.num_controls;
                 obj.num_st = 2;%mpc_model.num_states;
