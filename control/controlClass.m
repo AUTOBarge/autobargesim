@@ -20,7 +20,7 @@ classdef controlClass
 	% -LowLevelMPCCtrl: This method implements the low-level MPC controller.
     % Author:
 	% 	Abhishek Dhyani
-        %       AmirReza Haqshenas M.
+    %       AmirReza Haqshenas M.
 	% Date:
 	%	29/02/2024
 	% Version:
@@ -48,7 +48,7 @@ classdef controlClass
                 obj.pid_params = pid_params;
                 obj.Flag_cont = Flag_cont;
             elseif Flag_cont==2 && nargin==1
-                obj.mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.01, 'max_iter', 200, 'deltaMAX', 34);
+                obj.mpc_params = struct('Ts', 0.2, 'N', 80, 'headingGain', 100, 'rudderGain', 0.01, 'max_iter', 1000, 'deltaMAX', 34);
                 obj.Flag_cont = Flag_cont;
                 obj.num_ct = 1;%mpc_model.num_controls;
                 obj.num_st = 2;%mpc_model.num_states;
@@ -192,11 +192,11 @@ classdef controlClass
         end
 
         function [ctrl_command,obj] = LowLevelPIDCtrl(obj,psi_d,r,psi,h)
-                
+
                 psi_d_old = obj.pid_params.psi_d_old;
                 error_old = obj.pid_params.error_old;
-                error_psi = (psi-psi_d);			
-				r_d = (psi_d-psi_d_old)/h;
+                error_psi = utils.wrap_angle_to_pmpi(psi - psi_d);
+                r_d = utils.wrap_angle_to_pmpi(psi_d - psi_d_old) / h;
 				sum_error = error_psi+error_old;
                 K_p = obj.pid_params.K_p;
                 T_d = obj.pid_params.T_d;
@@ -210,14 +210,16 @@ classdef controlClass
         end	
 
         function [ctrl_command, next_guess,obj] = LowLevelMPCCtrl(obj, states, psi_d, r_d, args, initial_guess, mpc_nlp)
-            
+
             N_mpc = obj.mpc_params.N;
             num_states = obj.num_st;
             num_controls = obj.num_ct;
 
             X0 = initial_guess.X0;
             u0 = initial_guess.u0;
-      
+
+            psi_d = states(6) + utils.wrap_angle_to_pmpi(psi_d - states(6));
+
             args.p = vertcat(states(3),states(6),r_d, psi_d);
             args.x0 = vertcat(reshape(X0, num_states*(N_mpc+1),1), ...
                               reshape(u0, num_controls*N_mpc, 1));

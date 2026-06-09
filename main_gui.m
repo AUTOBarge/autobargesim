@@ -255,6 +255,7 @@ function main_gui()
             plan.path_points(end,:)=[endPoint(1), endPoint(2)];
         end
         wp_wgs84 = plan.path_points;
+        wp_depths = plan.path_depths;
         wgs84 = wgs84Ellipsoid;
         lon0 = wp_wgs84(1,1);
         lat0 = wp_wgs84(1,2);
@@ -268,14 +269,16 @@ function main_gui()
         % Initialisation
         t_f = 1e5; % final simulation time (sec)
         h = 0.2; % sample time (sec)
+        colav_dt = 0.5; % SBMPC prediction sample time (sec); coarser than h to speed up COLAV
         
         % Create and initialise guidance class object
         vessel1.guidance = LOSguidance();
         vessel1.wp.pos = wp_pos;
+        vessel1.wp.depths = wp_depths;
         vessel1.wp.speed = 100*ones(length(wp_pos),1);
         vessel1.wp.idx = 1;
         initial_state = [0 0 0 0 0 0]'; % Initial state [u v r x y psi] in column
-        vessel1.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
+        vessel1.chi_d_prev = initialHeading(wp_pos);
         [chi, ~] = vessel1.guidance.compute_LOSRef(vessel1.wp.pos, vessel1.wp.speed, initial_state', vessel1.wp.idx, 1, vessel1.chi_d_prev, 0);
         initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
         vessel1.chi_d_prev = chi;
@@ -286,6 +289,7 @@ function main_gui()
         rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
         vessel1.model = modelClass(ship_dim);
         vessel1.model = vessel1.model.ship_params_calculator(env_set, rud_params);
+        vessel1.model = vessel1.model.set_depth_profile(vessel1.wp.pos, vessel1.wp.depths, env_set.H);
         vessel1.model.sensor_state = initial_state;
         
         % Create and initialise actuator class objects
@@ -306,7 +310,7 @@ function main_gui()
             vessel1.control.model = controlClass(Flag_cont,pid_params);
         elseif controllerType == 3 % MPC
             Flag_cont = 2; 
-            mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 200, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
+            mpc_params = struct('Ts', 0.2, 'N', param1, 'headingGain', param2, 'rudderGain', param3, 'max_iter', 100, 'deltaMAX', 34, 'K_dash', K_dash, 'T_dash', T_dash, 'L', L);
             vessel1.control.model=controlClass(Flag_cont,mpc_params);
             vessel1.control.param.mpc_nlp = vessel1.control.model.init_mpc();
             vessel1.control.param.args = vessel1.control.model.constraintcreator();
@@ -314,8 +318,9 @@ function main_gui()
         end
         
         if strcmpi(add_ts_vessel, 'Yes')
-            % Initialize colision avoidance
-            vessel1.colav.alg = sbmpc(10, h);
+            % Initialize collision avoidance
+            vessel1.colav.alg = sbmpc(10, colav_dt);
+            vessel1.colav.alg = vessel1.colav.alg.set_depare_polyshape(plan.depare_polyshape, lat0, lon0);
             vessel1.colav.param = [1; 0]; % chi_m, U_m
         end
         
@@ -350,6 +355,11 @@ if strcmpi(add_ts_vessel, 'Yes')
     
     %
     wp_wgs84 = plan.path_points;
+    wp_depths = plan.path_depths;
+    if isnan(wp_wgs84(end,1))
+        wp_wgs84 = wp_wgs84(1:end-1,:);
+        wp_depths = wp_depths(1:end-1);
+    end
     wgs84 = wgs84Ellipsoid;
     wp_pos = zeros(length(wp_wgs84),2);
     height = 0;
@@ -357,13 +367,14 @@ if strcmpi(add_ts_vessel, 'Yes')
         [xEast,yNorth,~] = geodetic2enu(wp_wgs84(i,2),wp_wgs84(i,1),height,lat0,lon0,height,wgs84);
         wp_pos(i,:) = [xEast,yNorth];
     end
-    
+
     % Create and initialise guidance class object
     vessel2.guidance = LOSguidance();
     vessel2.wp.pos = wp_pos;
+    vessel2.wp.depths = wp_depths;
     vessel2.wp.speed = 100*ones(length(wp_pos),1);
     vessel2.wp.idx = 1;
-    vessel2.chi_d_prev = atan2(wp_pos(2, 2)-wp_pos(1, 2),wp_pos(2, 1)-wp_pos(1, 1));
+    vessel2.chi_d_prev = initialHeading(wp_pos);
     [chi, ~] = vessel2.guidance.compute_LOSRef(vessel2.wp.pos, vessel2.wp.speed, [0 0 0 0 0 0], vessel2.wp.idx, 1, vessel2.chi_d_prev, 0);
     initial_state = [0 0 0 wp_pos(1, 1) wp_pos(1, 2) chi]'; % Initial state [u v r x y psi] in column
     vessel2.chi_d_prev = chi;
@@ -374,6 +385,7 @@ if strcmpi(add_ts_vessel, 'Yes')
     rud_params = struct("C_R", 3.2, "B_R", 2.8, "l_R_dash", -0.71, "t_R", 0.387, "alpha_H", 0.312, "gamma_R", 0.395, "epsilon", 1.09, "kappa", 0.5, "x_R_dash", -0.5, "x_H_dash", -0.464, "delta_dot", 5);
     vessel2.model = modelClass(ship_dim);
     vessel2.model = vessel2.model.ship_params_calculator(env_set, rud_params);
+    vessel2.model = vessel2.model.set_depth_profile(vessel2.wp.pos, vessel2.wp.depths, env_set.H);
     vessel2.model.sensor_state = initial_state;
 
     % Create and initialise actuator class objects
@@ -399,7 +411,8 @@ if strcmpi(add_ts_vessel, 'Yes')
     end
 
     % Initialize colision avoidance
-    vessel2.colav.alg = sbmpc(10, h);
+    vessel2.colav.alg = sbmpc(10, colav_dt);
+    vessel2.colav.alg = vessel2.colav.alg.set_depare_polyshape(plan.depare_polyshape, lat0, lon0);
     vessel2.colav.param = [1; 0]; % chi_m, U_m
 end
 
@@ -408,97 +421,89 @@ vessels = [vessel1; vessel2];
 STOP = zeros(numel(vessels),1);
 stop_time =zeros(numel(vessels),1);
 
+        n_xout_cols = 12; % [time u v r x y psi n delta u_dot v_dot r_dot]
+        n_pout_cols = 4;  % [xte psi_er xtetot psi_er_tot]
+        xout = zeros(numel(vessels), t_f, n_xout_cols);
+        pout = zeros(numel(vessels), t_f, n_pout_cols);
+
+        has_ts = strcmpi(add_ts_vessel, 'Yes');
+        force_serial = false; % flip to true to disable parfor over vessels
+        use_parallel_vessels = ~force_serial && (numel(vessels) > 1) && license('test', 'Distrib_Computing_Toolbox') == 1;
+
         %% Start the loop for simulation
         for i = 1:t_f
             if i==1
                 fprintf('\nPlease wait. This may take a while...\n')
             end
+            n_v = numel(vessels);
+            ts_states_all = zeros(n_v, 6);
+            for v = 1:n_v
+                ts_states_all(v, :) = vessels(v).model.sensor_state;
+            end
+
             vessels_hold = vessels;
-            for j = 1:numel(vessels_hold)
-
-                if STOP(j)==0
-                
-                os = vessels_hold(j);
-                ts = vessels_hold(setxor(1:numel(vessels_hold), j));
-        
-                ts_sensor_states = [];
-                for v = 1:numel(ts)
-                    ts_sensor_states(v, :) = ts(v).model.sensor_state;
-                end
-                ts_sensor_states = reshape(ts_sensor_states, numel(ts), []);
-
-                vel = os.model.sensor_state(1:3);
-                psi = os.model.sensor_state(6);
-                r = os.model.sensor_state(3);
-                time = (i - 1) * h; % simulation time in seconds
-
-                % Find the active waypoint
-                os.wp.idx = os.guidance.find_active_wp_segment(os.wp.pos, os.model.sensor_state', os.wp.idx);
-    
-                % Call LOS algorithm
-                [chi, U] = os.guidance.compute_LOSRef(os.wp.pos, os.wp.speed, os.model.sensor_state', os.wp.idx, 1, os.chi_d_prev, i);
-                
-                if strcmpi(add_ts_vessel, 'Yes')
-                [chi, U, os.colav.parameters(1), os.colav.parameters(2)] = os.colav.alg.run_sbmpc(os.model.sensor_state', ...
-                                                                                               chi, U, ...
-                                                                                               os.colav.param(1), ...
-                                                                                               os.colav.param(2), ...
-                                                                                               ts_sensor_states);
-                end
-            os.chi_d_prev = chi;
-            if Flag_cont == 2 % Implement the MPC controller
-            r_d = chi - psi;
-            [ctrl_command_MPC, os.control.param.next_guess, os.control.model] = os.control.model.LowLevelMPCCtrl(vertcat(os.model.sensor_state, os.control.output), chi, r_d, os.control.param.args, os.control.param.next_guess, os.control.param.mpc_nlp);
-            ctrl_command = [250; ctrl_command_MPC];
-            else  % Implement the PID controller
-                [ctrl_command, os.control.model] = os.control.model.LowLevelPIDCtrl(chi, r, psi, h);
-            end
-            
-            % Provide the vessel with the computed control command
-            os.actuators = os.actuators.act_response(os.control.output, ctrl_command, h);
-            os.model = os.model.sensor_dynamic_model(os.actuators, env_set);
-        
-            % Vessel's state update (Euler integration)
-            os.model.sensor_state = os.model.sensor_state + os.model.sensor_state_dot * h;
-            
-            % Calculate the performance indices
-            [xte,psi_er,os.err.xtetot,os.err.psi_er_tot,os.control.model] = os.control.model.XTECalc(os.model.sensor_state, chi, os.wp.pos, os.wp.idx, os.err.xtetot, os.err.psi_er_tot);
-            
-            % Update control action
-            os.control.output = os.actuators.ctrl_actual';
-            
-            % store data for presentation
-            xout(j, i, :) = [time, os.model.sensor_state', os.actuators.ctrl_actual, os.model.sensor_state_dot(1:3)'];
-            vessels_hold(j) = os;
-    
-            % store the performance indices
-            pout(j, i, :) = [xte, psi_er, os.err.xtetot, os.err.psi_er_tot];
-
-            % Checking if OS reaching the last wp:
-            x_cur=os.model.sensor_state(4);
-            y_cur=os.model.sensor_state(5);
-            d_threshold = norm([x_cur-os.wp.pos(end,1),y_cur-os.wp.pos(end,2)],2);
-            if d_threshold < 20
-                STOP(j)= 1; % Rise the stop flag for this vessel
-                stop_time(j)=i; % Record the stop time
-            end
+            time = (i - 1) * h;
+            if i > 1
+                pout_carry = squeeze(pout(:, i-1, :));
+                if isvector(pout_carry); pout_carry = pout_carry.'; end
             else
-                % Vessel keep the same position with zero velocity
-                os = vessels_hold(j);
-                os.model.sensor_state = [0;0;0;os.model.sensor_state(4);os.model.sensor_state(5);os.model.sensor_state(6)];
-                os.model.sensor_state_dot = [0;0;0;0;0;0];
-                os.control.output     = [0;0];
-                xout(j, i, :) = [time, os.model.sensor_state', os.actuators.ctrl_actual, os.model.sensor_state_dot(1:3)'];            
-                vessels_hold(j) = os;
-                pout(j, i, :)= pout(j, i-1, :);
+                pout_carry = zeros(n_v, 4);
             end
+
+            if use_parallel_vessels
+                parfor j = 1:n_v
+                    if STOP(j) == 0
+                        ts_sensor_states = ts_states_all(setxor(1:n_v, j), :);
+                        [vessels_hold(j), xout_row, pout_row, stop_now] = stepVessel(vessels_hold(j), ts_sensor_states, i, h, Flag_cont, has_ts, env_set, time);
+                        xout(j, i, :) = xout_row;
+                        pout(j, i, :) = pout_row;
+                        if stop_now
+                            STOP(j) = 1;
+                            stop_time(j) = i;
+                        end
+                    else
+                        os_j = vessels_hold(j);
+                        os_j.model.sensor_state = [0;0;0;os_j.model.sensor_state(4);os_j.model.sensor_state(5);os_j.model.sensor_state(6)];
+                        os_j.model.sensor_state_dot = [0;0;0;0;0;0];
+                        os_j.control.output = [0;0];
+                        xout(j, i, :) = [time, os_j.model.sensor_state', os_j.actuators.ctrl_actual, os_j.model.sensor_state_dot(1:3)'];
+                        pout(j, i, :) = pout_carry(j, :);
+                        vessels_hold(j) = os_j;
+                    end
+                end
+            else
+                for j = 1:n_v
+                    if STOP(j) == 0
+                        ts_sensor_states = ts_states_all(setxor(1:n_v, j), :);
+                        [vessels_hold(j), xout_row, pout_row, stop_now] = stepVessel(vessels_hold(j), ts_sensor_states, i, h, Flag_cont, has_ts, env_set, time);
+                        xout(j, i, :) = xout_row;
+                        pout(j, i, :) = pout_row;
+                        if stop_now
+                            STOP(j) = 1;
+                            stop_time(j) = i;
+                        end
+                    else
+                        os_j = vessels_hold(j);
+                        os_j.model.sensor_state = [0;0;0;os_j.model.sensor_state(4);os_j.model.sensor_state(5);os_j.model.sensor_state(6)];
+                        os_j.model.sensor_state_dot = [0;0;0;0;0;0];
+                        os_j.control.output = [0;0];
+                        xout(j, i, :) = [time, os_j.model.sensor_state', os_j.actuators.ctrl_actual, os_j.model.sensor_state_dot(1:3)'];
+                        pout(j, i, :) = pout_carry(j, :);
+                        vessels_hold(j) = os_j;
+                    end
+                end
+            end
+
+            if prod(STOP)==1
+                break;
+            end
+            vessels = vessels_hold;
         end
-        if prod(STOP)==1
-            break;
-        end
-        vessels = vessels_hold;
-        end
-        
+
+
+        xout = xout(:, 1:i, :);
+        pout = pout(:, 1:i, :);
+
         % time-series
         t = xout(1, :, 1);
         u = xout(1, :, 2);
@@ -525,9 +530,9 @@ stop_time =zeros(numel(vessels),1);
             psi_ts_rad = xout(2, :, 7);
             psi_ts = xout(2, :, 7) * 180 / pi;
         end
-        [nominal_time_os, nominal_dist_os, actual_time_os, actual_dist_os] = os.guidance.perf(vessels(1).wp.pos,x,y,3,h,stop_time(1),3);
+        [nominal_time_os, nominal_dist_os, actual_time_os, actual_dist_os] = vessels(1).guidance.perf(vessels(1).wp.pos,x,y,3,h,stop_time(1),3);
         if strcmpi(add_ts_vessel, 'Yes')
-        [nominal_time_ts, nominal_dist_ts, actual_time_ts, actual_dist_ts] = ts.guidance.perf(vessels(2).wp.pos,x_ts,y_ts,3,h,stop_time(2),3);
+        [nominal_time_ts, nominal_dist_ts, actual_time_ts, actual_dist_ts] = vessels(2).guidance.perf(vessels(2).wp.pos,x_ts,y_ts,3,h,stop_time(2),3);
         end
         % Convert ENU to WGS84
         ship_wgs84 =zeros(length(x),2);

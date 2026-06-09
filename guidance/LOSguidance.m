@@ -68,11 +68,7 @@ classdef LOSguidance < guidance
             %       angle_out -> preference angle output: 1 <=> course angle;
             %                                             2 <=> heading angle.
             
-            validateattributes(wp_pos, {'double'}, {'size', [NaN, 2]})
-            validateattributes(wp_speed, {'double'}, {'size', [NaN, 1]})
-            validateattributes(x, {'double'}, {'size', [1, 6]})
-            validateattributes(wp_idx, {'double'}, {'scalar'})
-            chi_rate_max = pi/90; % Maximum rate of course update = 2 degrees per time step
+            chi_rate_max = pi/45; % Maximum rate of course update = 2 degrees per time step
             wp_pos = wp_pos';
             wp_speed = wp_speed';
             
@@ -94,19 +90,14 @@ classdef LOSguidance < guidance
                 chi_r = atan2(-(self.K_p * e), 1) - asin(x(2)/x_los(4) + 1e-4);
             end
             chi_d_raw = utils.wrap_angle_to_pmpi(alpha + chi_r);
-            
-            % Apply rate limiter to chi_d
-            chi_d_rate = (chi_d_raw-chi_d_prev);
+
+            chi_d_rate = utils.wrap_angle_diff_to_pmpi(chi_d_raw, chi_d_prev);
             if abs(chi_d_rate)> chi_rate_max
                 chi_d_rate = sign(chi_d_rate)* chi_rate_max;
             end
 
-            % Apply update limiter to chi_d
-            if mod(i,5)==0
-                chi_d = chi_d_prev + chi_d_rate ;
-            else
-                chi_d = chi_d_prev;
-            end
+            chi_d = utils.wrap_angle_to_pmpi(chi_d_prev + chi_d_rate);
+            
             U_d = wp_speed(wp_idx);
         end
     end
