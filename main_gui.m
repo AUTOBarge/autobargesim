@@ -427,8 +427,6 @@ stop_time =zeros(numel(vessels),1);
         pout = zeros(numel(vessels), t_f, n_pout_cols);
 
         has_ts = strcmpi(add_ts_vessel, 'Yes');
-        force_serial = false; % flip to true to disable parfor over vessels
-        use_parallel_vessels = ~force_serial && (numel(vessels) > 1) && license('test', 'Distrib_Computing_Toolbox') == 1;
 
         %% Start the loop for simulation
         for i = 1:t_f
@@ -450,47 +448,24 @@ stop_time =zeros(numel(vessels),1);
                 pout_carry = zeros(n_v, 4);
             end
 
-            if use_parallel_vessels
-                parfor j = 1:n_v
-                    if STOP(j) == 0
-                        ts_sensor_states = ts_states_all(setxor(1:n_v, j), :);
-                        [vessels_hold(j), xout_row, pout_row, stop_now] = stepVessel(vessels_hold(j), ts_sensor_states, i, h, Flag_cont, has_ts, env_set, time);
-                        xout(j, i, :) = xout_row;
-                        pout(j, i, :) = pout_row;
-                        if stop_now
-                            STOP(j) = 1;
-                            stop_time(j) = i;
-                        end
-                    else
-                        os_j = vessels_hold(j);
-                        os_j.model.sensor_state = [0;0;0;os_j.model.sensor_state(4);os_j.model.sensor_state(5);os_j.model.sensor_state(6)];
-                        os_j.model.sensor_state_dot = [0;0;0;0;0;0];
-                        os_j.control.output = [0;0];
-                        xout(j, i, :) = [time, os_j.model.sensor_state', os_j.actuators.ctrl_actual, os_j.model.sensor_state_dot(1:3)'];
-                        pout(j, i, :) = pout_carry(j, :);
-                        vessels_hold(j) = os_j;
+            for j = 1:n_v
+                if STOP(j) == 0
+                    ts_sensor_states = ts_states_all(setxor(1:n_v, j), :);
+                    [vessels_hold(j), xout_row, pout_row, stop_now] = stepVessel(vessels_hold(j), ts_sensor_states, i, h, Flag_cont, has_ts, env_set, time);
+                    xout(j, i, :) = xout_row;
+                    pout(j, i, :) = pout_row;
+                    if stop_now
+                        STOP(j) = 1;
+                        stop_time(j) = i;
                     end
-                end
-            else
-                for j = 1:n_v
-                    if STOP(j) == 0
-                        ts_sensor_states = ts_states_all(setxor(1:n_v, j), :);
-                        [vessels_hold(j), xout_row, pout_row, stop_now] = stepVessel(vessels_hold(j), ts_sensor_states, i, h, Flag_cont, has_ts, env_set, time);
-                        xout(j, i, :) = xout_row;
-                        pout(j, i, :) = pout_row;
-                        if stop_now
-                            STOP(j) = 1;
-                            stop_time(j) = i;
-                        end
-                    else
-                        os_j = vessels_hold(j);
-                        os_j.model.sensor_state = [0;0;0;os_j.model.sensor_state(4);os_j.model.sensor_state(5);os_j.model.sensor_state(6)];
-                        os_j.model.sensor_state_dot = [0;0;0;0;0;0];
-                        os_j.control.output = [0;0];
-                        xout(j, i, :) = [time, os_j.model.sensor_state', os_j.actuators.ctrl_actual, os_j.model.sensor_state_dot(1:3)'];
-                        pout(j, i, :) = pout_carry(j, :);
-                        vessels_hold(j) = os_j;
-                    end
+                else
+                    os_j = vessels_hold(j);
+                    os_j.model.sensor_state = [0;0;0;os_j.model.sensor_state(4);os_j.model.sensor_state(5);os_j.model.sensor_state(6)];
+                    os_j.model.sensor_state_dot = [0;0;0;0;0;0];
+                    os_j.control.output = [0;0];
+                    xout(j, i, :) = [time, os_j.model.sensor_state', os_j.actuators.ctrl_actual, os_j.model.sensor_state_dot(1:3)'];
+                    pout(j, i, :) = pout_carry(j, :);
+                    vessels_hold(j) = os_j;
                 end
             end
 

@@ -14,7 +14,7 @@ function [os, xout_row, pout_row, stop_now] = stepVessel(os, ts_sensor_states, i
     if has_ts
         own_xy = [os.model.sensor_state(4), os.model.sensor_state(5)];
         d_min_ts = min(vecnorm(ts_sensor_states(:, 4:5) - own_xy, 2, 2));
-        react_distance = 8 * os.colav.alg.tuning_param.D_CLOSE_;
+        react_distance = 3 * os.colav.alg.tuning_param.D_CLOSE_;
         if d_min_ts < react_distance
             effective_stride = 1;
         else

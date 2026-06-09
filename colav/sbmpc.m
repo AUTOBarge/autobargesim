@@ -1,7 +1,7 @@
 classdef sbmpc < colav
     properties (Constant, Hidden)
-        default_D_CLOSE_ = 20 % distance for an nearby obstacle [m]
-        default_D_SAFE_ = 10 % distance of safety zone [m]
+        default_D_CLOSE_ = 60 % distance for a nearby obstacle [m] 
+        default_D_SAFE_ = 30 % distance of safety zone [m] 
 
         default_KAPPA_ = 7.0 % cost function parameter
         default_PHI_AH_ = deg2rad(68.5) % colregs angle - ahead [deg]
@@ -99,7 +99,7 @@ classdef sbmpc < colav
                 'Chi_ca_', p.Results.Chi_ca_,...
                 'U_ca_', p.Results.U_ca_);
 
-            sbmpcObj.use_parallel = license('test', 'Distrib_Computing_Toolbox') == 1;
+            sbmpcObj.use_parallel = false;
         end
         function self = set_depare_polyshape(self, polyshape_wgs84, lat0, lon0)
             % Cache the depare polygon in the same ENU frame as the
@@ -187,30 +187,48 @@ classdef sbmpc < colav
 
             n_chi = length(Chi_ca_);
             n_U = length(U_ca_);
-            costs = inf(n_chi, n_U);
+            n_cand = n_chi * n_U;
 
-            if self.use_parallel
-                parfor i = 1:n_chi
-                    row = inf(1, n_U);
-                    for j = 1:n_U
-                        row(j) = self.computeCandidateCost(state, chi_d, U_d, ...
-                            Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last, ...
-                            ts_trajs, num_ts, n_samples);
-                    end
-                    costs(i, :) = row;
-                end
-            else
-                for i = 1:n_chi
-                    for j = 1:n_U
-                        costs(i, j) = self.computeCandidateCost(state, chi_d, U_d, ...
-                            Chi_ca_(i), U_ca_(j), chi_m_last, U_m_last, ...
-                            ts_trajs, num_ts, n_samples);
-                    end
+            % Build the per-candidate control matrix in row-major order
+            % (candidate k = (i-1)*n_U + j).
+            controls = zeros(n_cand, 2);
+            chi_ca_per_cand = zeros(n_cand, 1);
+            U_ca_per_cand = zeros(n_cand, 1);
+            for i = 1:n_chi
+                base = (i - 1) * n_U;
+                for j = 1:n_U
+                    k = base + j;
+                    controls(k, :) = [chi_d + Chi_ca_(i), U_d * U_ca_(j)];
+                    chi_ca_per_cand(k) = Chi_ca_(i);
+                    U_ca_per_cand(k) = U_ca_(j);
                 end
             end
 
-            [~, k] = min(costs(:));
-            [i_star, j_star] = ind2sub([n_chi, n_U], k);
+            % Vectorised RK4: propagate all candidate trajectories in
+            % one batched pass
+            states_init = repmat(state, n_cand, 1);
+            all_trajs = self.calcVesselTrajsBatch(states_init, controls, self.dt, n_samples);
+
+            costs = inf(n_cand, 1);
+            if self.use_parallel
+                parfor k = 1:n_cand
+                    ownship_traj = squeeze(all_trajs(k, :, :));
+                    costs(k) = self.computeCostFromTraj(ownship_traj, ...
+                        chi_d, U_d, chi_ca_per_cand(k), U_ca_per_cand(k), ...
+                        chi_m_last, U_m_last, ts_trajs, num_ts, n_samples);
+                end
+            else
+                for k = 1:n_cand
+                    ownship_traj = squeeze(all_trajs(k, :, :));
+                    costs(k) = self.computeCostFromTraj(ownship_traj, ...
+                        chi_d, U_d, chi_ca_per_cand(k), U_ca_per_cand(k), ...
+                        chi_m_last, U_m_last, ts_trajs, num_ts, n_samples);
+                end
+            end
+
+            [~, k_star] = min(costs);
+            i_star = ceil(k_star / n_U);
+            j_star = k_star - (i_star - 1) * n_U;
             chi_m = Chi_ca_(i_star);
             U_m = U_ca_(j_star);
             chi_c = utils.wrap_angle_to_pmpi(chi_d + chi_m);
@@ -218,9 +236,10 @@ classdef sbmpc < colav
         end
     end
     methods (Hidden)
-        function cost = computeCandidateCost(self, state, chi_d, U_d, chi_ca, U_ca, chi_m_last, U_m_last, ts_trajs, num_ts, n_samples)
-            ownship_traj = self.calcVesselTraj(state, [chi_d + chi_ca, U_d * U_ca], self.dt, n_samples);
-
+        function cost = computeCostFromTraj(self, ownship_traj, chi_d, U_d, chi_ca, U_ca, chi_m_last, U_m_last, ts_trajs, num_ts, n_samples)
+            % This function computes the cost for a given ownship trajectory, which includes the 
+            % collision and COLREGS cost with all target ships, as well as the maneuvering cost
+            % and land cost for the candidate control that generated the trajectory.
             land_cost = 0;
             if ~isempty(self.boundary_xy_enu) && (chi_ca ~= 0 || U_ca ~= 1)
                 idx_check = 1:self.land_check_stride:size(ownship_traj, 1);
